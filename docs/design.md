@@ -165,56 +165,68 @@ M1 is the make-or-break milestone — if the core loop isn't fun on a single blo
 
 ## 7. Player character & controls
 
-**Status:** open. Critical for M1.
+**Status:** decided.
 
-**Open sub-questions:**
-- Movement scheme: WASD only, twin-stick (WASD + mouse aim), or touch-friendly?
-- Default HP and damage scale.
-- Movement speed baseline (tiles/sec).
-- Dodge / iframes mechanic?
+**Decided:**
+- **Twin-stick controls:** WASD to move, mouse to aim, left-click to fire.
+- **Mobile fallback:** polite "use desktop" warning. Touch controls out of v1.
+- **Default HP:** 100. Baseline enemy hit = 10 dmg.
+- **Movement speed:** 5 tiles/sec baseline (16 px tiles → 80 px/sec at zoom 1).
+- **Dodge roll on Space:** ~0.3 s duration, ~3 tiles of travel, ~0.4 s iframes during the roll, ~0.8 s cooldown.
 
 ---
 
 ## 8. Combat feel
 
-**Status:** open. Critical for M1.
+**Status:** decided.
 
-**Open sub-questions:**
-- Ranged-only, melee-only, or mixed? (Weapon unlocks may include both later.)
-- Hitscan or projectile?
-- Active dodge button (roll/dash) or pure positional play?
+**Decided:**
+- **Ranged primary**, projectile-based (not hitscan).
+- Default starting weapon is ranged; weapon pool may include melee variants as unlocks/pickups.
+- **Mouse aim, hold-to-fire** with per-weapon fire rate. No charging mechanics in v1.
+- Dodge roll (#7) is the primary defensive tool.
 
 ---
 
 ## 9. Map / room structure
 
-**Status:** open. Critical for M1.
+**Status:** decided.
 
-**Open sub-questions:**
-- Single open arena per block, multi-room, or wave chamber?
-- Arena dimensions (fixed, since size/weight is not used)?
-- What does the layout PRNG (per-block hash bytes 0–15) actually generate — obstacle placement, spawn points, doors?
+**Decided:**
+- **Single open arena per block.** Player is locked in until all waves are cleared.
+- **Fixed arena size:** ~40×30 tiles (640×480 at 16 px tiles).
+- **Layout PRNG (per-block hash bytes 0–15) drives:** obstacle placement, enemy spawn-edge selection per wave, loot drop positions. Arena boundary is fixed; interior varies per block.
+- **Run mode:** when a block is cleared, the player exits through a portal that loads the next block's arena.
 
 ---
 
 ## 10. Visual art direction
 
-**Status:** open. Critical for M1.
+**Status:** decided.
 
-**Open sub-questions:**
-- Pixel art (8 / 16 / 32 px tiles) vs vector vs geometric primitives?
-- Camera zoom / view size (tiles visible on screen).
-- Style commitment — what does the base sprite look like before any shader?
+**Decided:**
+- **16×16 pixel art tiles.**
+- **Camera zoom:** 2× (32 effective px per tile on screen).
+- **Base sprite style:** simple geometric pixel-art silhouettes — readable shapes, minimal interior detail. Shaders + palette do the aesthetic heavy lifting.
+- **Animations:** 2–4 frames per state (idle, move, attack, die).
 
 ---
 
 ## 11. The 5 shader moods (specifically)
 
-**Status:** open. Critical for M2 (and decoupled from M1, but easier to lock in alongside the others).
+**Status:** decided.
 
-**Open sub-questions:**
-- Concrete list of 5 moods, each implementable as a single fragment shader.
-- Intensity range per mood.
+**Decided:** five named moods, each implementable as a single fragment shader.
+
+| # | Mood | Effect | Intensity range |
+|---|---|---|---|
+| 1 | CRT | scanlines + bloom + slight barrel distortion | scanline opacity 0.2–0.6 |
+| 2 | Glitch | chromatic aberration + occasional pixel-shift bands | aberration 0–4 px, band frequency 0–0.3 |
+| 3 | Watercolor | low-pass blur + color bleeding + paper grain | blur 0–2 px, bleed 0–0.5 |
+| 4 | Neon | bloom + saturation boost + bright edge outline | bloom 0–1.0, saturation 1.0–1.6 |
+| 5 | Vintage | sepia tint + film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 |
+
+Intensity comes from byte 1 of the epoch hash, mapped into each mood's specific range.
 
 ---
 
@@ -222,6 +234,7 @@ M1 is the make-or-break milestone — if the core loop isn't fun on a single blo
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-25** — Five pre-impl topics decided (#7–#11): twin-stick controls (WASD + mouse + Space dodge, 100 HP, 5 tiles/sec); ranged projectile combat with hold-to-fire; single open arena per block (~40×30 tiles, fixed size, PRNG drives obstacles/spawns/loot positions); 16×16 pixel art at 2× zoom with simple silhouettes; 5 named shader moods (CRT, Glitch, Watercolor, Neon, Vintage) with concrete intensity ranges.
 - **2026-04-25** — v1 scope locked (#6): launch definition (modes, enemies, weapons, loot, visuals, tech), milestones M0–M5, out-of-scope list, and launch success criteria all set; M1 is the make-or-break gate. Five new pre-impl topics opened (#7 player, #8 combat, #9 map, #10 art direction, #11 shader moods).
 - **2026-04-25** — Progression model locked (#4), full v1: three modes — Single Block (free select), Run (multi-block campaign-lite with persistent HP/weapons/buffs and a 3-choice buff screen between blocks), Daily Challenge; sats persist across runs and unlock 3–5 starting weapons; per-block completion flag in localStorage; leaderboards deferred to post-v1.
 - **2026-04-25** — Data source & offline play locked (#1): store only `hash`, `bits`, `tx_count`, `timestamp`, `nonce`, `height` per block (~50 B); lazy + epoch-aware fetching via `/api/v1/blocks/:N` 15-block batches plus epoch retarget block; IndexedDB cache via `idb-keyval` (no expiry) + service worker for app shell; tip height refreshed on focus / 10 min, reorgs ignored; in-flight dedupe + exponential backoff retries + clear offline UX.
