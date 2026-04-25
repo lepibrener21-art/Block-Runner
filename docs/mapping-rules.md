@@ -10,11 +10,11 @@ Each section follows the same shape: **decided** items at the top, **open** item
 
 | Field | Drives | Status |
 |---|---|---|
-| `hash` | aesthetics: biome look, palette, enemy appearance, shaders | in progress |
-| `difficulty` / `bits` | enemy strength (non-linear scaling) | open |
-| `tx_count` | loot quantity, enemy count, wave structure | open |
-| `timestamp` | era / lighting flavor | open |
-| `nonce` | loot table seed | open |
+| `hash` | aesthetics: biome look, palette, enemy appearance, shaders | decided |
+| `difficulty` / `bits` | enemy strength (non-linear scaling) | decided |
+| `tx_count` | loot quantity, enemy count, wave structure | decided |
+| `timestamp` | era / lighting flavor | decided |
+| `nonce` | loot table biases | decided |
 | `size` / `weight` | _not used_ | decided |
 
 ---
@@ -128,9 +128,24 @@ Specific tuning numbers (the constants in the formulas) will be revisited in pla
 
 ## 5. nonce → loot table
 
-**Open sub-questions:**
-- Does nonce pick the *table* (which items can drop) or the *roll* (what actually drops)?
-- Interaction with `tx_count` (quantity) — clear separation of concerns?
+**Decided:**
+- **What it drives:** per-block bias weights across item categories (the "table"), giving each block a deterministic loot identity.
+- **Per-drop selection:** reuses per-block hash bytes 22–25 — those bytes already place each loot slot and now also pick the specific item rolled at that slot.
+- **Item categories (v1):**
+  - Health pickups — restore HP
+  - Currency (**sats**) — meta-currency for between-run upgrades
+  - Weapons — temporary weapon swap / upgrade
+  - Powerups — temporary buff (speed, damage, etc.)
+  - Passive items — rare permanent run modifier
+- **Bias strength:** medium — category weights range 0.5×–2×. Noticeable lean per block, no block ever lacks essentials.
+- **Nonce expansion:** hash the 4-byte nonce to expand it into a 32-byte PRNG seed; treat it like any other deterministic seed downstream.
+
+**Clean three-way split for loot:**
+- §3 `tx_count` → quantity (how many drops)
+- per-block hash bytes 22–25 → position + per-drop roll
+- §5 nonce → table biases (which categories this block leans toward)
+
+**Open sub-questions:** none.
 
 ---
 

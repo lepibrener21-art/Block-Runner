@@ -36,7 +36,7 @@ Block Runner is a top-down roguelike where every Bitcoin block — from the gene
 
 ## 2. Mapping rules (block data → level)
 
-**Status:** in progress — see `mapping-rules.md` for details.
+**Status:** decided — see `mapping-rules.md` for full details.
 
 **High-level allocation (decided 2026-04-25):**
 - `hash` → aesthetics (biome look, palette, enemy appearance, shader effects)
@@ -141,6 +141,7 @@ Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-25** — `nonce` → loot table biases locked (mapping-rules §5): nonce drives per-block category bias weights (medium strength, 0.5×–2×); per-drop rolls reuse per-block hash bytes 22–25; v1 categories are health, sats, weapons, powerups, passives; in-game currency is "sats"; nonce is hashed to a 32-byte PRNG seed. Mapping-rules doc is now fully closed.
 - **2026-04-25** — Timestamp → era / lighting locked (mapping-rules §4): time-of-day from `timestamp % 86400` modulates epoch ambient light on a 24h cycle; subtle vintage post-process fades continuously from genesis to modern; layer order is epoch → time-of-day → era filter, none replaces the others.
 - **2026-04-25** — `tx_count` → loot + enemy waves locked (mapping-rules §3): sub-linear scaling with floors/caps for both enemies (6–100) and loot (2–20); kill-based wave trigger with safety timeout; per-block hash bytes 18–29 allocated to wave/loot/enemy-type RNG.
 - **2026-04-25** — Difficulty → enemy strength locked (mapping-rules §2): log curve with cap; multi-stat scaling with separate curves (HP 5–8×, damage 2–3×, speed 1.3–1.5× at chain tip); aggression unlocks at discrete thresholds; difficulty = quality, `tx_count` = quantity (no overlap).
