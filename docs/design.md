@@ -98,23 +98,20 @@ Open sub-topics tracked in `mapping-rules.md`.
 
 ## 5. Tech stack
 
-**Status:** in progress — framework decided, sub-stack pending confirmation.
+**Status:** decided.
 
 **Decided:**
 - **Framework:** Phaser 3
 - **Language:** TypeScript
 - **Target:** web-first. Desktop/mobile builds out of scope for v1.
-- Rationale: web-native, ~1 MB bundle and instant cold-load (critical for "share a link to block N" UX), TypeScript is a natural fit for the data-mapping logic, WebGL shaders supported for the 5 mood shaders, deploys to any static host without special headers.
-
-**Pending confirmation (proposed defaults):**
 - **Bundler / dev server:** Vite
-- **PRNG library:** `seedrandom` (or a hand-rolled xoshiro256++ if we want zero deps)
+- **PRNG library:** `seedrandom` (swap for hand-rolled xoshiro256++ later only if we need zero deps)
 - **Block data API:** mempool.space — open, CORS-friendly, no API key
 - **Local cache:** IndexedDB via `idb-keyval`
-- **Hosting:** any static host (Vercel / Netlify / Cloudflare Pages / GitHub Pages)
+- **Hosting:** any static host (final choice deferred until we have something to deploy)
+- **Mod / scripting hooks:** out of v1 scope. May revisit post-launch.
 
-**Sub-questions still open:**
-- Mod / scripting hooks for community-defined mapping rules? (Probably out of v1.)
+Rationale: web-native, ~1 MB bundle and instant cold-load (critical for "share a link to block N" UX), TypeScript fits the data-mapping logic, WebGL shaders supported for the 5 mood shaders, deploys to any static host without special headers.
 
 ---
 
@@ -144,7 +141,7 @@ Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
 
 A short, dated list of decisions as they're made. Newest at the top.
 
-- **2026-04-25** — Tech stack framework picked (#5): Phaser 3 + TypeScript, web-first. Desktop/mobile out of v1 scope. Sub-stack defaults (Vite, seedrandom, mempool.space, IndexedDB, static hosting) pending confirmation.
+- **2026-04-25** — Tech stack fully locked (#5): Phaser 3 + TypeScript, web-first. Vite for build, `seedrandom` for PRNG, mempool.space for block data, `idb-keyval` for IndexedDB cache, static hosting. Mod/scripting hooks deferred past v1.
 - **2026-04-25** — `nonce` → loot table biases locked (mapping-rules §5): nonce drives per-block category bias weights (medium strength, 0.5×–2×); per-drop rolls reuse per-block hash bytes 22–25; v1 categories are health, sats, weapons, powerups, passives; in-game currency is "sats"; nonce is hashed to a 32-byte PRNG seed. Mapping-rules doc is now fully closed.
 - **2026-04-25** — Timestamp → era / lighting locked (mapping-rules §4): time-of-day from `timestamp % 86400` modulates epoch ambient light on a 24h cycle; subtle vintage post-process fades continuously from genesis to modern; layer order is epoch → time-of-day → era filter, none replaces the others.
 - **2026-04-25** — `tx_count` → loot + enemy waves locked (mapping-rules §3): sub-linear scaling with floors/caps for both enemies (6–100) and loot (2–20); kill-based wave trigger with safety timeout; per-block hash bytes 18–29 allocated to wave/loot/enemy-type RNG.
