@@ -111,23 +111,110 @@ Rationale: web-native, ~1 MB bundle and instant cold-load (critical for "share a
 
 ## 6. Scope for v1
 
-**Status:** open
+**Status:** decided.
 
-**Proposed minimum viable slice:**
-- One biome
-- Three enemy types
-- One weapon
-- Deterministic generation from a single block hash
-- "Load block by height" entry point
-- One block playable end-to-end and fun
+**Decided — v1.0 launch definition (6a):**
 
-Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
+Gameplay:
+- 3 modes: Single Block, Run, Daily Challenge
+- 4 enemy types (one per aggression tier + a basic)
+- 3 starting weapons (unlockable via sats)
+- 5 loot categories (health, sats, weapons, powerups, passives)
+- Buff system between blocks in Run mode
+- Sats persistence + weapon unlocks
+- Per-block completion tracking (localStorage)
 
-**Sub-questions:**
-- What's the "fun test"? How do we know the core loop works before adding more?
-- Do we ship a public demo at v1, or keep it internal?
+Visual:
+- 5 shader moods × continuous palette space
+- Time-of-day modulation
+- Era post-process fade
+- Atmosphere (fog, particles, ambient light)
 
-**Decision:** —
+Tech:
+- Phaser 3 + TS + Vite
+- Deterministic generation pipeline + central `Rng`
+- mempool.space client + IndexedDB cache via `idb-keyval`
+- Service worker for app shell
+- ESLint rule banning `Math.random` in generation
+- CI snapshot test on fixed block heights
+- Deployed to a public URL
+
+**Decided — milestones (6b):**
+
+| # | Milestone | Goal |
+|---|---|---|
+| M0 | Foundations | Scaffold; mempool.space client; IndexedDB cache; deterministic `Rng`; lint rules |
+| M1 | One block, one fight | Deterministic level from one hash; 1 weapon, 1 enemy. Prove the core loop is fun. |
+| M2 | Aesthetics layer | 5 shader moods, palette, atmosphere, time-of-day, era filter |
+| M3 | Full mapping | Difficulty scaling; waves; loot biases; 5 categories; 4 enemy types with aggression tiers |
+| M4 | Run mode | Multi-block runs, persistent state, buff screen, run summary, sats persistence |
+| M5 | Polish & launch | Daily Challenge, completion tracking, unlocks, audio, tutorial, snapshot tests, deploy |
+
+M1 is the make-or-break milestone — if the core loop isn't fun on a single block, biome variation can't rescue it.
+
+**Decided — out of v1 (6c):** mod / scripting hooks, curated themed runs, global leaderboards, characters / cosmetics, mobile / desktop builds, reorg handling, bundled starter pack, full-simulation determinism, multiplayer.
+
+**Decided — launch success criteria (6d):**
+- 10–20 manually verified representative blocks generate distinct, playable levels
+- Snapshot tests green in CI
+- Cold load < 3 s on a typical connection
+- Run mode survives a 10+ block run without state corruption
+- Daily Challenge rolls over correctly at the day boundary
+
+---
+
+## 7. Player character & controls
+
+**Status:** open. Critical for M1.
+
+**Open sub-questions:**
+- Movement scheme: WASD only, twin-stick (WASD + mouse aim), or touch-friendly?
+- Default HP and damage scale.
+- Movement speed baseline (tiles/sec).
+- Dodge / iframes mechanic?
+
+---
+
+## 8. Combat feel
+
+**Status:** open. Critical for M1.
+
+**Open sub-questions:**
+- Ranged-only, melee-only, or mixed? (Weapon unlocks may include both later.)
+- Hitscan or projectile?
+- Active dodge button (roll/dash) or pure positional play?
+
+---
+
+## 9. Map / room structure
+
+**Status:** open. Critical for M1.
+
+**Open sub-questions:**
+- Single open arena per block, multi-room, or wave chamber?
+- Arena dimensions (fixed, since size/weight is not used)?
+- What does the layout PRNG (per-block hash bytes 0–15) actually generate — obstacle placement, spawn points, doors?
+
+---
+
+## 10. Visual art direction
+
+**Status:** open. Critical for M1.
+
+**Open sub-questions:**
+- Pixel art (8 / 16 / 32 px tiles) vs vector vs geometric primitives?
+- Camera zoom / view size (tiles visible on screen).
+- Style commitment — what does the base sprite look like before any shader?
+
+---
+
+## 11. The 5 shader moods (specifically)
+
+**Status:** open. Critical for M2 (and decoupled from M1, but easier to lock in alongside the others).
+
+**Open sub-questions:**
+- Concrete list of 5 moods, each implementable as a single fragment shader.
+- Intensity range per mood.
 
 ---
 
@@ -135,6 +222,7 @@ Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-25** — v1 scope locked (#6): launch definition (modes, enemies, weapons, loot, visuals, tech), milestones M0–M5, out-of-scope list, and launch success criteria all set; M1 is the make-or-break gate. Five new pre-impl topics opened (#7 player, #8 combat, #9 map, #10 art direction, #11 shader moods).
 - **2026-04-25** — Progression model locked (#4), full v1: three modes — Single Block (free select), Run (multi-block campaign-lite with persistent HP/weapons/buffs and a 3-choice buff screen between blocks), Daily Challenge; sats persist across runs and unlock 3–5 starting weapons; per-block completion flag in localStorage; leaderboards deferred to post-v1.
 - **2026-04-25** — Data source & offline play locked (#1): store only `hash`, `bits`, `tx_count`, `timestamp`, `nonce`, `height` per block (~50 B); lazy + epoch-aware fetching via `/api/v1/blocks/:N` 15-block batches plus epoch retarget block; IndexedDB cache via `idb-keyval` (no expiry) + service worker for app shell; tip height refreshed on focus / 10 min, reorgs ignored; in-flight dedupe + exponential backoff retries + clear offline UX.
 - **2026-04-25** — Determinism contract locked (#3): layout-only determinism for v1 (in-game runtime not deterministic, but architecture keeps RNG centralized for future full-sim); latest-only versioning with changelog notes; engineering rules (centralized `Rng`, `Math.random` banned via ESLint, integer-grid generation, stable iteration, pinned asset versions); CI snapshot test on a fixed set of block heights to catch accidental nondeterminism.
