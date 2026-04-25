@@ -91,11 +91,22 @@ Exact `k` values and aggression thresholds will be tuned in playtesting; the fra
 **Decided:**
 - Drives loot quantity and enemy count.
 - Enemies spawn in waves, structure determined programmatically.
+- **Total enemies per level:** `total = clamp(6, 100, 4 × √tx_count)`. Sub-linear with floor (genesis-era still has a real fight) and cap (modern blocks aren't enemy floods).
+- **Wave count:** `waves = clamp(2, 8, ceil(log2(total / 5)))`, enemies spread evenly across waves.
+- **Wave trigger:** kill-based — next wave spawns when ≥80% of current wave is dead. 30 s safety timeout in case the wave stalls.
+- **Loot drops per level:** `loot = clamp(2, 20, √tx_count / 2)`. Same sub-linear shape as enemy count.
+- **Hash byte allocation** (from per-block hash reserved space):
 
-**Open sub-questions:**
-- How is wave structure derived from `tx_count`? (e.g. number of waves, enemies per wave, time between waves)
-- Cap on max enemies per level? Modern blocks can have 3000+ txs.
-- How is loot quantity bounded so it doesn't trivialize the run?
+| Bytes | Drives |
+|---|---|
+| 18–21 | Wave-spawn positions and timing jitter |
+| 22–25 | Loot drop positions |
+| 26–29 | Enemy-type selection within each wave |
+| 30–31 | _reserved_ |
+
+Specific tuning numbers (the constants in the formulas) will be revisited in playtesting.
+
+**Open sub-questions:** none.
 
 ---
 
