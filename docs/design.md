@@ -16,21 +16,14 @@ Block Runner is a top-down roguelike where every Bitcoin block — from the gene
 
 ## 1. Data source & offline play
 
-**Status:** open
+**Status:** decided.
 
-**Question:** Where does block data come from at runtime, and how much do we need?
-
-**Options to consider:**
-- Public APIs: mempool.space, blockstream.esplora, bitcoin core RPC.
-- Bundle headers with the game (~80 bytes × ~900k blocks ≈ 70 MB).
-- Cache on first fetch, fall back to bundled data when offline.
-
-**Sub-questions:**
-- Which fields do we actually need per block? Candidates: `hash`, `prev_hash`, `merkle_root`, `timestamp`, `nonce`, `bits`/difficulty, `tx_count`, `size`, `weight`.
-- Do we need any per-transaction data, or are headers enough?
-- How do we handle the chain tip advancing while a player is mid-run?
-
-**Decision:** —
+**Decided:**
+- **Fields per block (A):** `hash`, `bits`, `tx_count`, `timestamp`, `nonce`, `height`. ~50 bytes packed. No `prev_hash` / `merkle_root` / `size` / `weight` / transactions / fees.
+- **Fetch strategy (B):** lazy + epoch-aware. Player picks height `N` → IndexedDB lookup → on miss, fetch `/api/v1/blocks/:N` (returns 15 blocks centered on `N`) and cache all 15. Also fetch the epoch retarget block at `floor(N / 2016) * 2016` if not cached. Worst case: 2 round-trips per fresh load.
+- **Cache & offline (C):** IndexedDB via `idb-keyval`, keyed by height. Cached blocks never expire (block data is immutable modulo reorgs, which we ignore). Service worker caches the app shell so the game itself loads offline. No bundled starter pack for v1.
+- **Chain tip (D):** refresh tip height on app focus or every ~10 min via `/api/v1/blocks/tip/height`. Loading by height is always deterministic. Reorgs ignored — they affect only the most recent ~6 blocks and are rare.
+- **Politeness & errors (E):** dedupe in-flight fetches; retry with exponential backoff on network errors (2 retries, 1 s and 3 s); clear UX when a block can't be fetched ("offline + not cached"); always prefer the 15-block batch endpoint over single-block when prefetching.
 
 ---
 
@@ -138,6 +131,7 @@ Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-25** — Data source & offline play locked (#1): store only `hash`, `bits`, `tx_count`, `timestamp`, `nonce`, `height` per block (~50 B); lazy + epoch-aware fetching via `/api/v1/blocks/:N` 15-block batches plus epoch retarget block; IndexedDB cache via `idb-keyval` (no expiry) + service worker for app shell; tip height refreshed on focus / 10 min, reorgs ignored; in-flight dedupe + exponential backoff retries + clear offline UX.
 - **2026-04-25** — Determinism contract locked (#3): layout-only determinism for v1 (in-game runtime not deterministic, but architecture keeps RNG centralized for future full-sim); latest-only versioning with changelog notes; engineering rules (centralized `Rng`, `Math.random` banned via ESLint, integer-grid generation, stable iteration, pinned asset versions); CI snapshot test on a fixed set of block heights to catch accidental nondeterminism.
 - **2026-04-25** — Tech stack fully locked (#5): Phaser 3 + TypeScript, web-first. Vite for build, `seedrandom` for PRNG, mempool.space for block data, `idb-keyval` for IndexedDB cache, static hosting. Mod/scripting hooks deferred past v1.
 - **2026-04-25** — `nonce` → loot table biases locked (mapping-rules §5): nonce drives per-block category bias weights (medium strength, 0.5×–2×); per-drop rolls reuse per-block hash bytes 22–25; v1 categories are health, sats, weapons, powerups, passives; in-game currency is "sats"; nonce is hashed to a 32-byte PRNG seed. Mapping-rules doc is now fully closed.
