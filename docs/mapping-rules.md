@@ -27,40 +27,17 @@ The hash is the main randomness source for everything visual.
 - Biome epoch = 2016 blocks (difficulty retarget window).
 - Variation between biomes is subtle and programmatic — no new sprite sets per biome. Shaders and palette swaps do the heavy lifting.
 - Mapping is opaque to the player.
+- **Epoch seed source:** hash of the first block of the epoch (height where `height % 2016 == 0`).
+- **Aesthetic dimensions driven by the epoch hash:** palette, shader (mood), atmosphere. (Enemy tints and music deferred.)
+- **Biome theme model:** hybrid — a small set of shader "moods" (target ~5) × continuous palette space.
+- **Per-block variation within an epoch:** epoch locks shader, palette family, and atmosphere; per-block hash varies layout, enemy positions, and small tint shifts.
 
 **Open sub-questions:**
 
-### 1a. Epoch seed source
-What seeds the per-epoch biome look?
-- Option A: hash of the **first block** of the epoch (the retarget block, height % 2016 == 0). Simple, stable, naturally framed as "this epoch's identity."
-- Option B: hash of all 2016 block hashes concatenated. More entropy, but no real benefit if we already have 256 bits.
-
-### 1b. Aesthetic dimensions to drive
-Which visual layers does the epoch hash control?
-- Palette (background, tiles, accent colors)
-- Tile shader (e.g. CRT, glitch, watercolor, neon outline)
-- Atmosphere (fog density, particle color/density, ambient light)
-- Enemy color tint / sprite-variant selection
-- Music / SFX theme (probably out of scope for v1)
-
-### 1c. Biome theme model
-How structured are the biomes?
-- Option A: **fully continuous** — one base tile set; epoch hash picks a point in continuous palette + shader space. Maximum variety, minimum assets.
-- Option B: **~5–10 named themes** (e.g. cyber, organic, crystal, void, ruins) chosen by epoch hash, with continuous palette variation within each theme.
-- Option C: hybrid — a small set of shader "moods" × continuous palette space.
-
-### 1d. Per-block variation within an epoch
-What shifts block-to-block within the same biome?
-- Likely: enemy/loot positions, specific tints, layout seed, tile-pattern variation.
-- Likely fixed for the epoch: shader, palette family, atmosphere style.
-
 ### 1e. Hash-byte allocation (internal)
-We need a clear internal allocation so different aesthetic systems pull from independent slices of the hash. Sketch (refine after 1a–1d):
-- bytes 0–3: palette seed
-- bytes 4–7: shader/mood selection
-- bytes 8–11: atmosphere parameters
-- bytes 12–15: enemy tint / variant
-- remaining bytes: layout / per-block randomness
+Two separate inputs — the **epoch hash** (first block of the epoch) and the **per-block hash** (the block being played) — each need a documented byte-slice allocation so independent visual systems pull from independent bits.
+
+See proposal in discussion; record table here once agreed.
 
 ---
 
