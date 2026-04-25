@@ -112,10 +112,17 @@ Specific tuning numbers (the constants in the formulas) will be revisited in pla
 
 ## 4. timestamp → era / lighting
 
-**Open sub-questions:**
-- Time-of-day mapping (timestamp → 24h cycle position)?
-- Era flavoring tied to year (e.g. 2009 = "early days" visual treatment)?
-- Interaction with epoch shader/atmosphere — who wins if they conflict?
+**Decided:**
+- **Time-of-day:** `tod = (timestamp % 86400) / 86400` → 0..1 mapped onto a 24h lighting cycle (midnight = deep blue/dim, sunrise = warm orange, noon = neutral/bright, sunset = red-orange/warm). Adds per-block flavor orthogonal to the epoch palette.
+- **Era flavoring:** subtle vintage post-process (faint grain / desaturation / CRT scanlines) whose intensity fades continuously from genesis to modern blocks.
+- **Layer order** (weakest → strongest):
+  1. Epoch (§1) — base palette, fog, particles, ambient light tone & intensity.
+  2. Time-of-day — global directional warm/cool lighting modulator on top.
+  3. Era filter — post-process pass on the final image.
+- Time-of-day **modulates** the epoch's ambient light; it does not replace it. Each axis adds independent flavor, none overrides the others.
+- Era intensity is a **continuous fade** based on years since genesis (no abrupt jumps between adjacent blocks).
+
+**Open sub-questions:** none.
 
 ---
 
