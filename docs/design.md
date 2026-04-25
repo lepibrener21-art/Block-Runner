@@ -1,0 +1,148 @@
+# Block Runner — Design Document
+
+A living document tracking open questions and decisions for the game.
+
+## Concept
+
+Block Runner is a top-down roguelike where every Bitcoin block — from the genesis block onward — is a playable level. Block data drives deterministic level generation: enter a block height, and the same level is reproduced for every player, every time.
+
+## How to use this document
+
+- **Open questions** are listed under each topic. Add notes, options considered, and tradeoffs as we discuss them.
+- When a question is resolved, move it to the **Decision** line for that topic and record the date.
+- Keep entries short. Link out to longer notes (e.g. mapping-rules.md) when a topic outgrows a few bullet points.
+
+---
+
+## 1. Data source & offline play
+
+**Status:** open
+
+**Question:** Where does block data come from at runtime, and how much do we need?
+
+**Options to consider:**
+- Public APIs: mempool.space, blockstream.esplora, bitcoin core RPC.
+- Bundle headers with the game (~80 bytes × ~900k blocks ≈ 70 MB).
+- Cache on first fetch, fall back to bundled data when offline.
+
+**Sub-questions:**
+- Which fields do we actually need per block? Candidates: `hash`, `prev_hash`, `merkle_root`, `timestamp`, `nonce`, `bits`/difficulty, `tx_count`, `size`, `weight`.
+- Do we need any per-transaction data, or are headers enough?
+- How do we handle the chain tip advancing while a player is mid-run?
+
+**Decision:** —
+
+---
+
+## 2. Mapping rules (block data → level)
+
+**Status:** open — next topic to focus on.
+
+**Question:** Which fields of a block drive which gameplay elements, and how?
+
+**Sketch to refine:**
+- First 4 bytes of hash → biome / palette
+- Next bytes of hash → enemy roster, layout seed
+- `nonce` → loot seed
+- `tx_count` → room count or level size
+- `difficulty` → enemy HP / damage scaling
+- `timestamp` → time-of-day lighting? era-based theming?
+
+**Sub-questions:**
+- Do we use raw bytes, or hash-of-hash for separation of concerns?
+- Should mapping be reversible/inspectable (player can see "this enemy came from byte 12")?
+- How much variation do we want between adjacent blocks vs. distant ones?
+
+**Decision:** —
+
+See `mapping-rules.md` (TBD) once this topic gets detailed.
+
+---
+
+## 3. Determinism contract
+
+**Status:** open
+
+**Question:** What guarantees do we make about reproducibility?
+
+**Constraints implied:**
+- Seeded PRNG everywhere — no `Math.random()`, no time-based seeds.
+- Fixed iteration order over sets/maps (avoid hash-order nondeterminism).
+- Asset versions pinned per game version: a level on v1.0 may differ on v2.0, but within a version it's identical for everyone.
+- Physics/AI must be deterministic *for level generation*; in-run player actions can stay non-deterministic.
+
+**Sub-questions:**
+- Do we version levels (block height + game version) so old runs are reproducible after updates?
+- Is enemy AI itself deterministic (replayable runs), or only the level layout?
+
+**Decision:** —
+
+---
+
+## 4. Progression model
+
+**Status:** open
+
+**Question:** How does the player engage with 900k+ levels?
+
+**Modes to consider:**
+- **Campaign:** play blocks in order from genesis. Long-term goal: reach the tip.
+- **Daily challenge:** today's tip block (or yesterday's, to keep it stable).
+- **Free select:** enter any height and play.
+- **Curated runs:** themed sequences (e.g. "halving blocks," "blocks with the highest fees").
+
+**Sub-questions:**
+- Meta-progression across runs? Unlocks tied to block milestones?
+- Leaderboards per block height?
+- Is "completion" of a block a meaningful concept, and does it persist?
+
+**Decision:** —
+
+---
+
+## 5. Tech stack
+
+**Status:** open
+
+**Question:** What do we build on?
+
+**Options:**
+- **Web (recommended start):** Phaser, PixiJS, or Godot-web. Easy to share "try block 250000" links.
+- **Native:** Godot, Unity, or a custom engine. Better performance, harder distribution.
+
+**Sub-questions:**
+- Language preference? (TypeScript fits web well.)
+- Mobile support in scope, or desktop-only?
+- Mod/scripting hooks for community-defined mapping rules?
+
+**Decision:** —
+
+---
+
+## 6. Scope for v1
+
+**Status:** open
+
+**Proposed minimum viable slice:**
+- One biome
+- Three enemy types
+- One weapon
+- Deterministic generation from a single block hash
+- "Load block by height" entry point
+- One block playable end-to-end and fun
+
+Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
+
+**Sub-questions:**
+- What's the "fun test"? How do we know the core loop works before adding more?
+- Do we ship a public demo at v1, or keep it internal?
+
+**Decision:** —
+
+---
+
+## Decisions log
+
+A short, dated list of decisions as they're made. Newest at the top.
+
+- _none yet_
