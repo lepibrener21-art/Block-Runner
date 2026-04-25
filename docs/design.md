@@ -173,6 +173,7 @@ M1 is the make-or-break milestone — if the core loop isn't fun on a single blo
 - **Default HP:** 100. Baseline enemy hit = 10 dmg.
 - **Movement speed:** 5 tiles/sec baseline (16 px tiles → 80 px/sec at zoom 1).
 - **Dodge roll on Space:** ~0.3 s duration, ~3 tiles of travel, ~0.4 s iframes during the roll, ~0.8 s cooldown.
+- **Player palette:** color-stable across all biomes — the player never re-tints with the epoch palette. Biomes tint everything else. Critical for readability.
 
 ---
 
@@ -185,6 +186,7 @@ M1 is the make-or-break milestone — if the core loop isn't fun on a single blo
 - Default starting weapon is ranged; weapon pool may include melee variants as unlocks/pickups.
 - **Mouse aim, hold-to-fire** with per-weapon fire rate. No charging mechanics in v1.
 - Dodge roll (#7) is the primary defensive tool.
+- **Projectiles are blocked by walls and obstacles.** Standard, predictable; obstacle placement matters strategically.
 
 ---
 
@@ -197,6 +199,8 @@ M1 is the make-or-break milestone — if the core loop isn't fun on a single blo
 - **Fixed arena size:** ~40×30 tiles (640×480 at 16 px tiles).
 - **Layout PRNG (per-block hash bytes 0–15) drives:** obstacle placement, enemy spawn-edge selection per wave, loot drop positions. Arena boundary is fixed; interior varies per block.
 - **Run mode:** when a block is cleared, the player exits through a portal that loads the next block's arena.
+- **Obstacles (v1):** walls only. Destructible cover, hazards, and traps deferred.
+- **Player spawn:** always at arena center on block load (Single Block and Run mode portal entry both spawn at center).
 
 ---
 
@@ -234,6 +238,7 @@ Intensity comes from byte 1 of the epoch hash, mapped into each mood's specific 
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-25** — Pre-impl follow-ups (a–d): player palette stays color-stable across biomes (#7); projectiles are blocked by walls (#8); obstacles are walls-only for v1 (#9); player spawns at arena center on block load (#9).
 - **2026-04-25** — Five pre-impl topics decided (#7–#11): twin-stick controls (WASD + mouse + Space dodge, 100 HP, 5 tiles/sec); ranged projectile combat with hold-to-fire; single open arena per block (~40×30 tiles, fixed size, PRNG drives obstacles/spawns/loot positions); 16×16 pixel art at 2× zoom with simple silhouettes; 5 named shader moods (CRT, Glitch, Watercolor, Neon, Vintage) with concrete intensity ranges.
 - **2026-04-25** — v1 scope locked (#6): launch definition (modes, enemies, weapons, loot, visuals, tech), milestones M0–M5, out-of-scope list, and launch success criteria all set; M1 is the make-or-break gate. Five new pre-impl topics opened (#7 player, #8 combat, #9 map, #10 art direction, #11 shader moods).
 - **2026-04-25** — Progression model locked (#4), full v1: three modes — Single Block (free select), Run (multi-block campaign-lite with persistent HP/weapons/buffs and a 3-choice buff screen between blocks), Daily Challenge; sats persist across runs and unlock 3–5 starting weapons; per-block completion flag in localStorage; leaderboards deferred to post-v1.
