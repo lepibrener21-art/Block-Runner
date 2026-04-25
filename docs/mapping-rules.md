@@ -64,11 +64,25 @@ Section 1 closed. Move on to §2.
 
 **Decided:**
 - Scaling is non-linear — late blocks must stay playable.
+- **Curve shape:** logarithmic with a cap. Generic form: `mult = min(cap, 1 + log10(difficulty) * k)`. Stays playable indefinitely even as difficulty grows.
+- **Multi-stat scaling with different curves** so combat doesn't degrade into a bullet-sponge fight:
+  - HP scales the most.
+  - Damage scales moderately.
+  - Speed scales mildly.
+  - Aggression / behavior unlocks at discrete thresholds (e.g. dodging at one tier, ranged attacks at another).
+- **Separation of concerns:** difficulty drives **quality** (per-enemy strength). `tx_count` drives **quantity** (count + waves). No overlap.
 
-**Open sub-questions:**
-- Curve shape: log scale on raw difficulty? Normalized within an epoch? Capped above some height?
-- Which stats does it scale: HP, damage, speed, behavior aggression?
-- Does difficulty also affect enemy *count*, or is that strictly `tx_count`'s job?
+**Target ceiling at chain tip (~difficulty 10¹⁴):**
+
+| Stat | Multiplier at tip | Implied `k` (with cap) |
+|---|---|---|
+| HP    | 5–8×    | ~0.5  (cap 8×)  |
+| Damage | 2–3×   | ~0.15 (cap 3×)  |
+| Speed | 1.3–1.5× | ~0.035 (cap 1.5×) |
+
+Exact `k` values and aggression thresholds will be tuned in playtesting; the framework above is the design contract.
+
+**Open sub-questions:** none.
 
 ---
 
