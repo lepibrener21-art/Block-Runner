@@ -67,22 +67,26 @@ Open sub-topics tracked in `mapping-rules.md`.
 
 ## 4. Progression model
 
-**Status:** open
+**Status:** decided.
 
-**Question:** How does the player engage with 900k+ levels?
-
-**Modes to consider:**
-- **Campaign:** play blocks in order from genesis. Long-term goal: reach the tip.
-- **Daily challenge:** today's tip block (or yesterday's, to keep it stable).
-- **Free select:** enter any height and play.
-- **Curated runs:** themed sequences (e.g. "halving blocks," "blocks with the highest fees").
-
-**Sub-questions:**
-- Meta-progression across runs? Unlocks tied to block milestones?
-- Leaderboards per block height?
-- Is "completion" of a block a meaningful concept, and does it persist?
-
-**Decision:** —
+**Decided:**
+- **Modes for v1 (4a):** three modes sharing the same core combat.
+  - **Single Block (Free Select):** pick any height, fight that one block, win or die.
+  - **Run (Campaign-lite):** pick a starting height, play forward through `N`, `N+1`, `N+2`, …; state carries between blocks; die ends the run.
+  - **Daily Challenge:** today's tip block played as Single Block; score logged locally.
+  - Deferred: curated themed runs (halving blocks, fee record blocks, etc.), global leaderboards.
+- **Run mechanics (4b):**
+  - HP, current weapon, and active buffs persist between blocks within a run.
+  - Between blocks: brief 3-choice buff screen (e.g. damage trades, +1 max HP, +25% sats drop). Choices are **deterministic to the block** — same options for everyone playing block `N`; player choice creates run-to-run variation.
+  - Death → run summary (blocks cleared, sats earned, time alive).
+- **Meta-progression (4c):**
+  - Sats persist across runs.
+  - Unlock starting weapons at sats thresholds (3–5 weapons in v1, including the default).
+  - Deferred: characters, cosmetics, passive perks, prestige.
+- **Completion tracking (4d):**
+  - Per-block "completed" flag in localStorage on first win (any mode).
+  - UI surfaces total blocks explored and milestones (first halving cleared, N difficulty epochs cleared, etc.).
+- **Leaderboards (4e):** out of v1 (requires backend + anti-cheat). Local "best score per block" only. Post-v1 candidate: shared per-block leaderboards (natural fit since the level is identical for everyone).
 
 ---
 
@@ -131,6 +135,7 @@ Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-25** — Progression model locked (#4), full v1: three modes — Single Block (free select), Run (multi-block campaign-lite with persistent HP/weapons/buffs and a 3-choice buff screen between blocks), Daily Challenge; sats persist across runs and unlock 3–5 starting weapons; per-block completion flag in localStorage; leaderboards deferred to post-v1.
 - **2026-04-25** — Data source & offline play locked (#1): store only `hash`, `bits`, `tx_count`, `timestamp`, `nonce`, `height` per block (~50 B); lazy + epoch-aware fetching via `/api/v1/blocks/:N` 15-block batches plus epoch retarget block; IndexedDB cache via `idb-keyval` (no expiry) + service worker for app shell; tip height refreshed on focus / 10 min, reorgs ignored; in-flight dedupe + exponential backoff retries + clear offline UX.
 - **2026-04-25** — Determinism contract locked (#3): layout-only determinism for v1 (in-game runtime not deterministic, but architecture keeps RNG centralized for future full-sim); latest-only versioning with changelog notes; engineering rules (centralized `Rng`, `Math.random` banned via ESLint, integer-grid generation, stable iteration, pinned asset versions); CI snapshot test on a fixed set of block heights to catch accidental nondeterminism.
 - **2026-04-25** — Tech stack fully locked (#5): Phaser 3 + TypeScript, web-first. Vite for build, `seedrandom` for PRNG, mempool.space for block data, `idb-keyval` for IndexedDB cache, static hosting. Mod/scripting hooks deferred past v1.
