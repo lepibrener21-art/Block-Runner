@@ -36,26 +36,22 @@ Block Runner is a top-down roguelike where every Bitcoin block — from the gene
 
 ## 2. Mapping rules (block data → level)
 
-**Status:** open — next topic to focus on.
+**Status:** decided — see `mapping-rules.md` for full details.
 
-**Question:** Which fields of a block drive which gameplay elements, and how?
+**High-level allocation (decided 2026-04-25):**
+- `hash` → aesthetics (biome look, palette, enemy appearance, shader effects)
+- `difficulty` / `bits` → enemy strength, with non-linear scaling so late blocks stay playable
+- `tx_count` → loot quantity + enemy count, via programmatic wave spawning
+- `timestamp` → era / lighting flavor
+- `nonce` → loot table seed
+- `size` / `weight` → **not used** (would require costly level-dimension changes during generation)
 
-**Sketch to refine:**
-- First 4 bytes of hash → biome / palette
-- Next bytes of hash → enemy roster, layout seed
-- `nonce` → loot seed
-- `tx_count` → room count or level size
-- `difficulty` → enemy HP / damage scaling
-- `timestamp` → time-of-day lighting? era-based theming?
+**Cross-cutting decisions:**
+- Biome shifts every 2016 blocks, mirroring Bitcoin's difficulty retarget epoch.
+- Visuals between biomes should be *subtly* different, driven programmatically (shaders, palette swaps) so that 2D sprite asset creation stays minimal.
+- Mapping is **opaque** to the player (no in-game "byte 3 → red enemy" tooling). This is also the cheaper design path.
 
-**Sub-questions:**
-- Do we use raw bytes, or hash-of-hash for separation of concerns?
-- Should mapping be reversible/inspectable (player can see "this enemy came from byte 12")?
-- How much variation do we want between adjacent blocks vs. distant ones?
-
-**Decision:** —
-
-See `mapping-rules.md` (TBD) once this topic gets detailed.
+Open sub-topics tracked in `mapping-rules.md`.
 
 ---
 
@@ -145,4 +141,12 @@ Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
 
 A short, dated list of decisions as they're made. Newest at the top.
 
-- _none yet_
+- **2026-04-25** — `nonce` → loot table biases locked (mapping-rules §5): nonce drives per-block category bias weights (medium strength, 0.5×–2×); per-drop rolls reuse per-block hash bytes 22–25; v1 categories are health, sats, weapons, powerups, passives; in-game currency is "sats"; nonce is hashed to a 32-byte PRNG seed. Mapping-rules doc is now fully closed.
+- **2026-04-25** — Timestamp → era / lighting locked (mapping-rules §4): time-of-day from `timestamp % 86400` modulates epoch ambient light on a 24h cycle; subtle vintage post-process fades continuously from genesis to modern; layer order is epoch → time-of-day → era filter, none replaces the others.
+- **2026-04-25** — `tx_count` → loot + enemy waves locked (mapping-rules §3): sub-linear scaling with floors/caps for both enemies (6–100) and loot (2–20); kill-based wave trigger with safety timeout; per-block hash bytes 18–29 allocated to wave/loot/enemy-type RNG.
+- **2026-04-25** — Difficulty → enemy strength locked (mapping-rules §2): log curve with cap; multi-stat scaling with separate curves (HP 5–8×, damage 2–3×, speed 1.3–1.5× at chain tip); aggression unlocks at discrete thresholds; difficulty = quality, `tx_count` = quantity (no overlap).
+- **2026-04-25** — Hash → aesthetics byte allocation locked (mapping-rules §1e): epoch hash bytes 0–13 drive shader/palette/atmosphere (14–31 reserved); per-block hash bytes 0–15 seed layout PRNG, 16–17 drive per-block tint shift (18–31 reserved). Palette uses HSL anchors; 5 shader moods.
+- **2026-04-25** — Hash → aesthetics details (mapping-rules §1): epoch seed = first block of epoch; epoch hash drives palette + shader + atmosphere; biome model is hybrid (~5 shader moods × continuous palette); epoch locks shader/palette/atmosphere, per-block hash drives layout + enemy positions + small tint shifts.
+- **2026-04-25** — High-level mapping allocation set (see #2): hash → aesthetics; difficulty → enemy strength (non-linear); tx_count → loot + enemy waves; timestamp → era/lighting; nonce → loot table; size/weight unused.
+- **2026-04-25** — Biomes change every 2016 blocks (difficulty epoch). Visual variation is programmatic (shaders/palette), not new sprite sets.
+- **2026-04-25** — Mapping is opaque to the player.
