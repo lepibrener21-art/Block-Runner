@@ -32,12 +32,31 @@ The hash is the main randomness source for everything visual.
 - **Biome theme model:** hybrid — a small set of shader "moods" (target ~5) × continuous palette space.
 - **Per-block variation within an epoch:** epoch locks shader, palette family, and atmosphere; per-block hash varies layout, enemy positions, and small tint shifts.
 
-**Open sub-questions:**
+- **Byte allocation:** see tables below.
 
-### 1e. Hash-byte allocation (internal)
-Two separate inputs — the **epoch hash** (first block of the epoch) and the **per-block hash** (the block being played) — each need a documented byte-slice allocation so independent visual systems pull from independent bits.
+### Epoch hash (32 bytes) — per-epoch identity
 
-See proposal in discussion; record table here once agreed.
+| Bytes | Drives | Notes |
+|---|---|---|
+| 0 | Shader mood index | `byte % 5` picks 1 of 5 shaders. |
+| 1 | Shader intensity | 0–255 → per-mood intensity range. |
+| 2–7 | Palette | Two HSL anchor points (3 bytes each: H, S, L) defining the epoch's color gradient. |
+| 8 | Fog density | 0–255 → 0.0–1.0. |
+| 9 | Particle density | 0–255 → particles per screen. |
+| 10–11 | Particle hue + saturation | Tinted relative to palette. |
+| 12 | Ambient light tone | Cool ↔ warm. |
+| 13 | Ambient light intensity | Dim ↔ bright. |
+| 14–31 | _reserved_ | Headroom for future epoch-level features. |
+
+### Per-block hash (32 bytes) — per-level variation within the epoch
+
+| Bytes | Drives | Notes |
+|---|---|---|
+| 0–15 | Layout PRNG seed | 128 bits feeds the level generator. |
+| 16–17 | Per-block palette tint shift | ≤10° hue, ≤10% saturation nudge from the epoch palette. |
+| 18–31 | _reserved_ | Headroom for downstream subsystems. |
+
+Section 1 closed. Move on to §2.
 
 ---
 
