@@ -57,21 +57,18 @@ Open sub-topics tracked in `mapping-rules.md`.
 
 ## 3. Determinism contract
 
-**Status:** open
+**Status:** decided.
 
-**Question:** What guarantees do we make about reproducibility?
-
-**Constraints implied:**
-- Seeded PRNG everywhere — no `Math.random()`, no time-based seeds.
-- Fixed iteration order over sets/maps (avoid hash-order nondeterminism).
-- Asset versions pinned per game version: a level on v1.0 may differ on v2.0, but within a version it's identical for everyone.
-- Physics/AI must be deterministic *for level generation*; in-run player actions can stay non-deterministic.
-
-**Sub-questions:**
-- Do we version levels (block height + game version) so old runs are reproducible after updates?
-- Is enemy AI itself deterministic (replayable runs), or only the level layout?
-
-**Decision:** —
+**Decided:**
+- **Scope (3a):** layout-only determinism for v1. The generated level — layout, enemy spawns, loot positions, palette, shader — is bit-identical for everyone given the same height + game version. In-game runtime (AI, physics, inputs) is not deterministic. Architecture keeps randomness centralized so full-simulation determinism can be added post-v1 if replays/leaderboards demand it.
+- **Versioning (3b):** latest-only. Every release regenerates levels; changelogs call out "balance changed, levels regenerated." Versioned levels and locked-at-v1 alternatives deferred.
+- **Engineering rules (3c):**
+  - All randomness flows through centralized `Rng` instances seeded from block data (built on `seedrandom`).
+  - `Math.random()` banned in generation code, enforced via ESLint `no-restricted-properties`.
+  - Generation runs on integer grids; avoid float-fragile math (`Math.sin/cos/sqrt`) in generation paths to dodge cross-browser FP differences. Rendering can use floats freely.
+  - Stable iteration: Maps/Arrays in generation, not Sets. No iteration over plain objects in hot paths.
+  - Asset versions pinned per release tag.
+- **Verification (3d):** CI snapshot test. For a fixed set of heights (0, 1, 100, 2016, 100000, 700000), generate the level, serialize key state (palette HSL, shader index, room layout, enemy positions, loot drops), hash it, and compare to a checked-in expected hash. Any change forces an explicit snapshot bump and signals that the game version should also bump.
 
 ---
 
@@ -141,6 +138,7 @@ Once the core loop is fun on one block, scale up biomes / enemies / mechanics.
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-25** — Determinism contract locked (#3): layout-only determinism for v1 (in-game runtime not deterministic, but architecture keeps RNG centralized for future full-sim); latest-only versioning with changelog notes; engineering rules (centralized `Rng`, `Math.random` banned via ESLint, integer-grid generation, stable iteration, pinned asset versions); CI snapshot test on a fixed set of block heights to catch accidental nondeterminism.
 - **2026-04-25** — Tech stack fully locked (#5): Phaser 3 + TypeScript, web-first. Vite for build, `seedrandom` for PRNG, mempool.space for block data, `idb-keyval` for IndexedDB cache, static hosting. Mod/scripting hooks deferred past v1.
 - **2026-04-25** — `nonce` → loot table biases locked (mapping-rules §5): nonce drives per-block category bias weights (medium strength, 0.5×–2×); per-drop rolls reuse per-block hash bytes 22–25; v1 categories are health, sats, weapons, powerups, passives; in-game currency is "sats"; nonce is hashed to a 32-byte PRNG seed. Mapping-rules doc is now fully closed.
 - **2026-04-25** — Timestamp → era / lighting locked (mapping-rules §4): time-of-day from `timestamp % 86400` modulates epoch ambient light on a 24h cycle; subtle vintage post-process fades continuously from genesis to modern; layer order is epoch → time-of-day → era filter, none replaces the others.
