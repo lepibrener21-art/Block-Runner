@@ -135,10 +135,9 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
   private aimVector(): { x: number; y: number } {
     const cam = this.scene.cameras.main;
     const pointer = this.scene.input.activePointer;
-    const wx = cam.scrollX + pointer.x / cam.zoom;
-    const wy = cam.scrollY + pointer.y / cam.zoom;
-    let dx = wx - this.x;
-    let dy = wy - this.y;
+    const world = cam.getWorldPoint(pointer.x, pointer.y);
+    let dx = world.x - this.x;
+    let dy = world.y - this.y;
     const len = Math.hypot(dx, dy);
     if (len === 0) return { x: 1, y: 0 };
     dx /= len;
