@@ -11,16 +11,22 @@ export class Bullet extends Phaser.Physics.Arcade.Sprite {
     super(scene, x, y, TEXTURE_KEY);
     scene.add.existing(this);
     scene.physics.add.existing(this);
-    this.setCircle(WEAPON.bulletSize / 2);
+    const halo = WEAPON.bulletSize + 4;
+    const offset = (halo - WEAPON.bulletSize) / 2;
+    this.setCircle(WEAPON.bulletSize / 2, offset, offset);
     this.setVelocity(dirX * WEAPON.bulletSpeed, dirY * WEAPON.bulletSpeed);
   }
 
   static registerTexture(scene: Phaser.Scene): void {
     if (scene.textures.exists(TEXTURE_KEY)) return;
+    const halo = WEAPON.bulletSize + 4;
+    const cx = halo / 2;
     const g = scene.add.graphics({ x: 0, y: 0 });
+    g.fillStyle(WEAPON.bulletGlowColor, 0.35);
+    g.fillCircle(cx, cx, halo / 2);
     g.fillStyle(WEAPON.bulletColor, 1);
-    g.fillCircle(WEAPON.bulletSize / 2, WEAPON.bulletSize / 2, WEAPON.bulletSize / 2);
-    g.generateTexture(TEXTURE_KEY, WEAPON.bulletSize, WEAPON.bulletSize);
+    g.fillCircle(cx, cx, WEAPON.bulletSize / 2);
+    g.generateTexture(TEXTURE_KEY, halo, halo);
     g.destroy();
   }
 

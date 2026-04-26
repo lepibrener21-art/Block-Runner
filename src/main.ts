@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { VIEWPORT_H, VIEWPORT_W } from './game/constants.ts';
 import { ArenaScene } from './game/scenes/arena-scene.ts';
 import { BootScene } from './game/scenes/boot-scene.ts';
+import { UIScene } from './game/scenes/ui-scene.ts';
 
 new Phaser.Game({
   type: Phaser.AUTO,
@@ -24,5 +25,5 @@ new Phaser.Game({
       debug: false,
     },
   },
-  scene: [BootScene, ArenaScene],
+  scene: [BootScene, ArenaScene, UIScene],
 });

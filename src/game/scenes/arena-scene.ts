@@ -19,25 +19,27 @@ export interface ArenaSceneData {
   block: BlockData;
 }
 
+type EndKind = 'cleared' | 'died';
+
 export class ArenaScene extends Phaser.Scene {
+  private block!: BlockData;
   private level!: Level;
   private player!: Player;
   private enemies!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
   private walls!: Phaser.Physics.Arcade.StaticGroup;
   private waveManager!: WaveManager;
-
-  private hpText!: Phaser.GameObjects.Text;
-  private waveText!: Phaser.GameObjects.Text;
-  private blockText!: Phaser.GameObjects.Text;
-  private endText?: Phaser.GameObjects.Text;
+  private endKind?: EndKind;
+  private restartKey?: Phaser.Input.Keyboard.Key;
 
   constructor() {
     super('arena');
   }
 
   init(data: ArenaSceneData): void {
+    this.block = data.block;
     this.level = generateLevel(data.block);
+    this.endKind = undefined;
   }
 
   create(): void {
@@ -45,14 +47,16 @@ export class ArenaScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, ARENA_W_PX, ARENA_H_PX);
     this.cameras.main.setZoom(CAMERA_ZOOM);
     this.cameras.main.centerOn(ARENA_W_PX / 2, ARENA_H_PX / 2);
-    this.cameras.main.setBackgroundColor(0x1a1d2e);
+    this.cameras.main.setBackgroundColor(0x0d0f1c);
+
+    this.drawArenaBackground();
 
     this.walls = this.physics.add.staticGroup();
     for (const w of this.level.walls) {
       const px = w.x * TILE_SIZE + (w.w * TILE_SIZE) / 2;
       const py = w.y * TILE_SIZE + (w.h * TILE_SIZE) / 2;
       const rect = this.add.rectangle(px, py, w.w * TILE_SIZE, w.h * TILE_SIZE, WALL.color);
-      rect.setStrokeStyle(1, 0x000000, 0.5);
+      rect.setStrokeStyle(1, 0x8088b5, 0.7);
       this.physics.add.existing(rect, true);
       this.walls.add(rect);
     }
@@ -86,11 +90,34 @@ export class ArenaScene extends Phaser.Scene {
 
     this.waveManager = new WaveManager(this.level, {
       onSpawn: (spec, idx) => this.spawnWave(spec, idx),
-      onAllCleared: () => this.showEnd('LEVEL CLEARED', 0x9bff7a),
+      onAllCleared: () => this.handleEnd('cleared'),
     });
 
-    this.buildHud();
+    if (this.input.keyboard) {
+      this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+    }
+
+    this.events.emit('hud:reset');
+    this.emitHudState(0);
+    if (!this.scene.isActive('ui')) {
+      this.scene.launch('ui');
+    }
+
     this.waveManager.start(this.time.now);
+  }
+
+  private drawArenaBackground(): void {
+    const grid = this.add.graphics();
+    grid.lineStyle(1, 0x1a2040, 0.6);
+    for (let x = TILE_SIZE; x < ARENA_W_PX; x += TILE_SIZE * 4) {
+      grid.lineBetween(x, 0, x, ARENA_H_PX);
+    }
+    for (let y = TILE_SIZE; y < ARENA_H_PX; y += TILE_SIZE * 4) {
+      grid.lineBetween(0, y, ARENA_W_PX, y);
+    }
+    grid.lineStyle(2, 0x6b73a8, 0.9);
+    grid.strokeRect(0.5, 0.5, ARENA_W_PX - 1, ARENA_H_PX - 1);
+    grid.setDepth(-10);
   }
 
   private spawnWave(spec: WaveSpec, idx: number): void {
@@ -99,52 +126,31 @@ export class ArenaScene extends Phaser.Scene {
       this.enemies.add(enemy);
       this.waveManager.enemySpawned();
     }
-    this.waveText.setText(this.waveLabel(idx));
+    this.emitHudState(idx);
   }
 
-  private buildHud(): void {
-    const cam = this.cameras.main;
-    const baseStyle: Phaser.Types.GameObjects.Text.TextStyle = {
-      fontFamily: 'monospace',
-      fontSize: '12px',
-      color: '#ddd',
-    };
-    this.blockText = this.add
-      .text(8, 6, `block ${this.level.blockHeight}`, baseStyle)
-      .setScrollFactor(0)
-      .setDepth(1000);
-    this.hpText = this.add.text(8, 22, '', baseStyle).setScrollFactor(0).setDepth(1000);
-    this.waveText = this.add.text(8, 38, '', baseStyle).setScrollFactor(0).setDepth(1000);
-    this.blockText.setScale(1 / cam.zoom);
-    this.hpText.setScale(1 / cam.zoom);
-    this.waveText.setScale(1 / cam.zoom);
-    this.refreshHud();
+  private emitHudState(waveIdx: number): void {
+    this.events.emit('hud:state', {
+      blockHeight: this.block.height,
+      hp: this.player ? this.player.hp : 100,
+      maxHp: this.player ? this.player.maxHp : 100,
+      wave: waveIdx + 1,
+      totalWaves: this.waveManager.totalWaves(),
+    });
   }
 
-  private waveLabel(idx: number): string {
-    return `wave ${idx + 1}/${this.waveManager.totalWaves()}`;
-  }
-
-  private refreshHud(): void {
-    this.hpText.setText(`hp ${this.player.hp}/${this.player.maxHp}`);
-  }
-
-  private showEnd(text: string, color: number): void {
-    if (this.endText) return;
-    const cx = this.cameras.main.scrollX + this.cameras.main.width / 2 / this.cameras.main.zoom;
-    const cy = this.cameras.main.scrollY + this.cameras.main.height / 2 / this.cameras.main.zoom;
-    this.endText = this.add
-      .text(cx, cy, text, {
-        fontFamily: 'monospace',
-        fontSize: '24px',
-        color: Phaser.Display.Color.IntegerToColor(color).rgba,
-      })
-      .setOrigin(0.5)
-      .setDepth(1000)
-      .setScale(1 / this.cameras.main.zoom);
+  private handleEnd(kind: EndKind): void {
+    if (this.endKind) return;
+    this.endKind = kind;
+    this.events.emit('hud:end', kind);
   }
 
   override update(time: number): void {
+    if (this.restartKey?.isDown && this.endKind) {
+      this.scene.restart({ block: this.block });
+      return;
+    }
+
     this.player.update(time);
     this.enemies.children.iterate((obj) => {
       const enemy = obj as Enemy;
@@ -152,10 +158,11 @@ export class ArenaScene extends Phaser.Scene {
       return true;
     });
     this.waveManager.update(time);
-    this.refreshHud();
 
-    if (this.player.isDead() && !this.endText) {
-      this.showEnd('YOU DIED', 0xff6c6c);
+    this.emitHudState(Math.max(0, this.waveManager.currentWaveIndex()));
+
+    if (this.player.isDead() && !this.endKind) {
+      this.handleEnd('died');
     }
   }
 }
