@@ -24,11 +24,12 @@ export const PLAYER = {
 } as const;
 
 export const WEAPON = {
-  fireIntervalMs: 200,
-  bulletSpeed: 320,
+  fireIntervalMs: 120,
+  bulletSpeed: 520,
   bulletDamage: 10,
-  bulletSize: 4,
+  bulletSize: 5,
   bulletColor: 0xfff1a6,
+  bulletGlowColor: 0xffe27a,
 } as const;
 
 export const ENEMY = {

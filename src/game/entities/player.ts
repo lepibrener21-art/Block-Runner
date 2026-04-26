@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { PLAYER } from '../constants.ts';
+import { PLAYER, WEAPON } from '../constants.ts';
 
 const TEXTURE_KEY = 'player-texture';
 
@@ -128,7 +128,7 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
     if (this.scene.input.activePointer.isDown && time >= this.fireCooldownUntil) {
       const aim = this.aimVector();
       this.fire(this.x, this.y, aim.x, aim.y);
-      this.fireCooldownUntil = time + 200;
+      this.fireCooldownUntil = time + WEAPON.fireIntervalMs;
     }
   }
 
