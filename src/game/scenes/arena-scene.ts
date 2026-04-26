@@ -1,4 +1,5 @@
 import Phaser from 'phaser';
+import { getBlock } from '../../data/blocks.ts';
 import type { BlockData } from '../../data/types.ts';
 import {
   ARENA_H_PX,
@@ -31,6 +32,8 @@ export class ArenaScene extends Phaser.Scene {
   private waveManager!: WaveManager;
   private endKind?: EndKind;
   private restartKey?: Phaser.Input.Keyboard.Key;
+  private nextKey?: Phaser.Input.Keyboard.Key;
+  private advancing = false;
 
   constructor() {
     super('arena');
@@ -40,6 +43,7 @@ export class ArenaScene extends Phaser.Scene {
     this.block = data.block;
     this.level = generateLevel(data.block);
     this.endKind = undefined;
+    this.advancing = false;
   }
 
   create(): void {
@@ -80,9 +84,10 @@ export class ArenaScene extends Phaser.Scene {
       const bullet = bulletObj as Bullet;
       const enemy = enemyObj as Enemy;
       if (!bullet.active || !enemy.active) return;
+      const waveIdx = enemy.waveIndex;
       const killed = enemy.takeDamage(bullet.damage);
       bullet.destroy();
-      if (killed) this.waveManager.enemyKilled(this.time.now);
+      if (killed) this.waveManager.enemyKilled(waveIdx, this.time.now);
     });
     this.physics.add.overlap(this.player, this.enemies, (_p, enemyObj) => {
       if (!(enemyObj as Enemy).active) return;
@@ -96,6 +101,7 @@ export class ArenaScene extends Phaser.Scene {
 
     if (this.input.keyboard) {
       this.restartKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.R);
+      this.nextKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
     }
 
     this.events.emit('hud:reset');
@@ -124,8 +130,9 @@ export class ArenaScene extends Phaser.Scene {
   private spawnWave(spec: WaveSpec, idx: number): void {
     for (const point of spec.spawns) {
       const enemy = new Enemy(this, point.x, point.y);
+      enemy.waveIndex = idx;
       this.enemies.add(enemy);
-      this.waveManager.enemySpawned();
+      this.waveManager.enemySpawned(idx);
     }
     this.emitHudState(idx);
   }
@@ -147,9 +154,15 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   override update(time: number): void {
-    if (this.restartKey?.isDown && this.endKind) {
-      this.scene.restart({ block: this.block });
-      return;
+    if (this.endKind && !this.advancing) {
+      if (this.restartKey?.isDown) {
+        this.scene.restart({ block: this.block });
+        return;
+      }
+      if (this.endKind === 'cleared' && this.nextKey?.isDown) {
+        void this.advanceToNextBlock();
+        return;
+      }
     }
 
     this.player.update(time);
@@ -164,6 +177,21 @@ export class ArenaScene extends Phaser.Scene {
 
     if (this.player.isDead() && !this.endKind) {
       this.handleEnd('died');
+    }
+  }
+
+  private async advanceToNextBlock(): Promise<void> {
+    if (this.advancing) return;
+    this.advancing = true;
+    const nextHeight = this.block.height + 1;
+    this.events.emit('hud:loading', `loading block ${nextHeight}…`);
+    try {
+      const next = await getBlock(nextHeight);
+      this.scene.restart({ block: next });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.events.emit('hud:loading', `failed to load: ${msg}`);
+      this.advancing = false;
     }
   }
 }

@@ -1,24 +1,30 @@
 import type { Level, WaveSpec } from '../level/types.ts';
 import { WAVE } from '../constants.ts';
 
-export type WaveState = 'pending' | 'active' | 'cleared' | 'between';
+export type WaveState = 'pending' | 'active' | 'cleared';
 
 interface WaveCallbacks {
   onSpawn: (spec: WaveSpec, waveIndex: number) => void;
   onAllCleared: () => void;
 }
 
+interface WaveStats {
+  spawned: number;
+  alive: number;
+}
+
 export class WaveManager {
   private waveIndex = -1;
-  private aliveInWave = 0;
-  private spawnedInWave = 0;
   private waveStartTime = 0;
   private state: WaveState = 'pending';
+  private readonly stats: WaveStats[];
 
   constructor(
     private readonly level: Level,
     private readonly callbacks: WaveCallbacks,
-  ) {}
+  ) {
+    this.stats = level.waves.map(() => ({ spawned: 0, alive: 0 }));
+  }
 
   start(time: number): void {
     this.spawnNext(time);
@@ -32,13 +38,16 @@ export class WaveManager {
     return this.level.waves.length;
   }
 
-  enemySpawned(): void {
-    this.aliveInWave++;
-    this.spawnedInWave++;
+  enemySpawned(waveIndex: number): void {
+    const stat = this.stats[waveIndex];
+    if (!stat) return;
+    stat.spawned++;
+    stat.alive++;
   }
 
-  enemyKilled(time: number): void {
-    this.aliveInWave = Math.max(0, this.aliveInWave - 1);
+  enemyKilled(waveIndex: number, time: number): void {
+    const stat = this.stats[waveIndex];
+    if (stat) stat.alive = Math.max(0, stat.alive - 1);
     this.checkAdvance(time);
   }
 
@@ -53,20 +62,30 @@ export class WaveManager {
     return this.state === 'cleared';
   }
 
+  private totalAlive(): number {
+    return this.stats.reduce((sum, s) => sum + s.alive, 0);
+  }
+
   private checkAdvance(time: number): void {
     if (this.state !== 'active') return;
-    const spec = this.level.waves[this.waveIndex];
-    if (!spec) return;
-    const killed = this.spawnedInWave - this.aliveInWave;
-    const killRatio = killed / spec.spawns.length;
-    if (killRatio >= WAVE.killThreshold) {
-      this.advance(time);
+    const cur = this.stats[this.waveIndex];
+    if (!cur || cur.spawned === 0) return;
+
+    const isLast = this.waveIndex >= this.level.waves.length - 1;
+
+    if (isLast) {
+      if (this.totalAlive() === 0) this.advance(time);
+      return;
     }
+
+    const killed = cur.spawned - cur.alive;
+    if (killed / cur.spawned >= WAVE.killThreshold) this.advance(time);
   }
 
   private advance(time: number): void {
-    if (this.waveIndex >= this.level.waves.length - 1) {
-      if (this.aliveInWave === 0) {
+    const isLast = this.waveIndex >= this.level.waves.length - 1;
+    if (isLast) {
+      if (this.totalAlive() === 0) {
         this.state = 'cleared';
         this.callbacks.onAllCleared();
       }
@@ -79,8 +98,6 @@ export class WaveManager {
     this.waveIndex++;
     const spec = this.level.waves[this.waveIndex];
     if (!spec) return;
-    this.aliveInWave = 0;
-    this.spawnedInWave = 0;
     this.waveStartTime = time;
     this.state = 'active';
     this.callbacks.onSpawn(spec, this.waveIndex);
