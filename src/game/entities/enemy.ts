@@ -5,6 +5,7 @@ const TEXTURE_KEY = 'enemy-texture';
 
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
   hp: number = ENEMY.hp;
+  waveIndex = -1;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
     Enemy.registerTexture(scene);
