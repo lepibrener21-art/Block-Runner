@@ -30,7 +30,7 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const hint = this.add
-      .text(width / 2, height / 2 + 40, 'WASD move · mouse aim · click fire · space dodge', {
+      .text(width / 2, height / 2 + 40, 'WASD move · mouse aim · click fire · space dodge · esc pause', {
         fontFamily: 'monospace',
         fontSize: '14px',
         color: '#5b6080',
