@@ -1,52 +1,25 @@
 import Phaser from 'phaser';
-import { getBlock } from './data/blocks.ts';
-import { Rng } from './rng/rng.ts';
-
-class BootScene extends Phaser.Scene {
-  constructor() {
-    super('boot');
-  }
-
-  create(): void {
-    const { width, height } = this.scale;
-
-    this.add
-      .text(width / 2, height / 2 - 20, 'Block Runner', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '32px',
-        color: '#ddd',
-      })
-      .setOrigin(0.5);
-
-    const status = this.add
-      .text(width / 2, height / 2 + 20, 'Loading block 0...', {
-        fontFamily: 'system-ui, sans-serif',
-        fontSize: '16px',
-        color: '#888',
-      })
-      .setOrigin(0.5);
-
-    void getBlock(0)
-      .then((block) => {
-        const rng = Rng.fromHex(block.hash);
-        const sample = rng.int(1000);
-        status.setText(
-          `Genesis loaded — hash ${block.hash.slice(0, 16)}…  rng sample ${sample}`,
-        );
-      })
-      .catch((err: unknown) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        status.setColor('#f88');
-        status.setText(`Failed to load genesis: ${msg}`);
-      });
-  }
-}
+import { VIEWPORT_H, VIEWPORT_W } from './game/constants.ts';
+import { ArenaScene } from './game/scenes/arena-scene.ts';
+import { BootScene } from './game/scenes/boot-scene.ts';
 
 new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
-  width: 1280,
-  height: 720,
-  backgroundColor: '#111',
-  scene: [BootScene],
+  width: VIEWPORT_W,
+  height: VIEWPORT_H,
+  pixelArt: true,
+  backgroundColor: '#0a0c1a',
+  scale: {
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH,
+  },
+  physics: {
+    default: 'arcade',
+    arcade: {
+      gravity: { x: 0, y: 0 },
+      debug: false,
+    },
+  },
+  scene: [BootScene, ArenaScene],
 });
