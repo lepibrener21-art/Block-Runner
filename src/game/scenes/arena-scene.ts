@@ -65,8 +65,9 @@ export class ArenaScene extends Phaser.Scene {
     this.enemies = this.physics.add.group({ classType: Enemy });
 
     this.player = new Player(this, ARENA_W_PX / 2, ARENA_H_PX / 2, (x, y, dx, dy) => {
-      const bullet = new Bullet(this, x, y, dx, dy);
+      const bullet = new Bullet(this, x, y);
       this.bullets.add(bullet);
+      bullet.launch(dx, dy);
     });
 
     this.physics.add.collider(this.player, this.walls);

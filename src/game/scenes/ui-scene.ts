@@ -34,13 +34,18 @@ export class UIScene extends Phaser.Scene {
     this.waveText = this.add.text(12, 54, '', baseStyle);
 
     const arena = this.scene.get('arena');
-    arena.events.on('hud:state', (state: HudState) => this.applyState(state), this);
-    arena.events.on('hud:end', (kind: EndKind) => this.showEnd(kind), this);
-    arena.events.on('hud:reset', () => this.clearEnd(), this);
-    arena.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      arena.events.off('hud:state', undefined, this);
-      arena.events.off('hud:end', undefined, this);
-      arena.events.off('hud:reset', undefined, this);
+    const onState = (state: HudState): void => this.applyState(state);
+    const onEnd = (kind: EndKind): void => this.showEnd(kind);
+    const onReset = (): void => this.clearEnd();
+
+    arena.events.on('hud:state', onState, this);
+    arena.events.on('hud:end', onEnd, this);
+    arena.events.on('hud:reset', onReset, this);
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      arena.events.off('hud:state', onState, this);
+      arena.events.off('hud:end', onEnd, this);
+      arena.events.off('hud:reset', onReset, this);
     });
   }
 

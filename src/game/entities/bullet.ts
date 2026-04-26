@@ -6,11 +6,14 @@ const TEXTURE_KEY = 'bullet-texture';
 export class Bullet extends Phaser.Physics.Arcade.Sprite {
   damage: number = WEAPON.bulletDamage;
 
-  constructor(scene: Phaser.Scene, x: number, y: number, dirX: number, dirY: number) {
+  constructor(scene: Phaser.Scene, x: number, y: number) {
     Bullet.registerTexture(scene);
     super(scene, x, y, TEXTURE_KEY);
     scene.add.existing(this);
     scene.physics.add.existing(this);
+  }
+
+  launch(dirX: number, dirY: number): void {
     const halo = WEAPON.bulletSize + 4;
     const offset = (halo - WEAPON.bulletSize) / 2;
     this.setCircle(WEAPON.bulletSize / 2, offset, offset);
