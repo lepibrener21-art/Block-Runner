@@ -88,9 +88,9 @@ export class ArenaScene extends Phaser.Scene {
       onSpawn: (spec, idx) => this.spawnWave(spec, idx),
       onAllCleared: () => this.showEnd('LEVEL CLEARED', 0x9bff7a),
     });
-    this.waveManager.start(this.time.now);
 
     this.buildHud();
+    this.waveManager.start(this.time.now);
   }
 
   private spawnWave(spec: WaveSpec, idx: number): void {
