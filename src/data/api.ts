@@ -1,3 +1,4 @@
+import type { MempoolTx } from './inscription.ts';
 import type { BlockData } from './types.ts';
 
 const MEMPOOL_BASE = 'https://mempool.space/api';
@@ -50,4 +51,9 @@ export async function fetchTipHeight(): Promise<number> {
   const res = await fetchWithRetry(`${MEMPOOL_BASE}/blocks/tip/height`);
   const text = await res.text();
   return parseInt(text.trim(), 10);
+}
+
+export async function fetchFirstBlockTxs(hash: string): Promise<MempoolTx[]> {
+  const res = await fetchWithRetry(`${MEMPOOL_BASE}/block/${hash}/txs/0`);
+  return (await res.json()) as MempoolTx[];
 }
