@@ -14,7 +14,8 @@ export interface MempoolTx {
 }
 
 const MIN_LEN = 4;
-const MAX_LEN = 220;
+const MAX_LINE_LEN = 110;
+const MAX_LINES = 5;
 
 function hexToBytes(hex: string): Uint8Array {
   const clean = hex.length % 2 === 0 ? hex : `0${hex}`;
@@ -46,8 +47,8 @@ function longestPrintableRun(hex: string): string {
 
 function truncate(text: string): string {
   const cleaned = text.replace(/\s+/g, ' ').trim();
-  if (cleaned.length <= MAX_LEN) return cleaned;
-  return `${cleaned.slice(0, MAX_LEN - 1)}…`;
+  if (cleaned.length <= MAX_LINE_LEN) return cleaned;
+  return `${cleaned.slice(0, MAX_LINE_LEN - 1)}…`;
 }
 
 function fromCoinbaseScriptsig(hex: string): string | null {
@@ -64,20 +65,25 @@ function fromOpReturn(scriptpubkeyHex: string): string | null {
 }
 
 export function findInscription(_height: number, txs: readonly MempoolTx[]): string | null {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  const push = (msg: string | null): boolean => {
+    if (!msg || seen.has(msg)) return false;
+    seen.add(msg);
+    lines.push(msg);
+    return lines.length >= MAX_LINES;
+  };
+
   const cb = txs[0]?.vin[0]?.scriptsig;
-  if (cb) {
-    const msg = fromCoinbaseScriptsig(cb);
-    if (msg) return msg;
-  }
+  if (cb && push(fromCoinbaseScriptsig(cb))) return lines.join('\n');
 
   for (const tx of txs) {
     if (tx.vin[0]?.is_coinbase) continue;
     for (const vout of tx.vout) {
       if (!vout.scriptpubkey) continue;
-      const msg = fromOpReturn(vout.scriptpubkey);
-      if (msg) return msg;
+      if (push(fromOpReturn(vout.scriptpubkey))) return lines.join('\n');
     }
   }
 
-  return null;
+  return lines.length > 0 ? lines.join('\n') : null;
 }
