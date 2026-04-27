@@ -1,4 +1,4 @@
-import { bytesFromHex } from '../../rng/rng.ts';
+import { Rng } from '../../rng/rng.ts';
 import {
   SHADER_MOODS,
   shiftHsl,
@@ -46,10 +46,7 @@ function buildPalette(anchorA: HSL, anchorB: HSL, particleHueByte: number, parti
 }
 
 export function deriveEpochVisuals(epochHashHex: string): EpochVisuals {
-  const bytes = bytesFromHex(epochHashHex);
-  if (bytes.length < 14) {
-    throw new Error(`epoch hash too short: ${bytes.length} bytes`);
-  }
+  const bytes = Rng.fromHex(`epoch:${epochHashHex}`).bytes(32);
 
   const shader: ShaderMood = SHADER_MOODS[bytes[0]! % SHADER_MOODS.length]!;
   const shaderIntensity = bytes[1]! / 255;
@@ -70,10 +67,7 @@ export function deriveEpochVisuals(epochHashHex: string): EpochVisuals {
 }
 
 export function deriveBlockVisuals(blockHashHex: string, epoch: EpochVisuals): BlockVisuals {
-  const bytes = bytesFromHex(blockHashHex);
-  if (bytes.length < 18) {
-    return { epoch, palette: epoch.palette };
-  }
+  const bytes = Rng.fromHex(`block:${blockHashHex}`).bytes(32);
   const dh = ((bytes[16]! / 255) * 2 - 1) * PER_BLOCK_HUE_RANGE;
   const ds = ((bytes[17]! / 255) * 2 - 1) * PER_BLOCK_SAT_RANGE;
   const palette: Palette = {

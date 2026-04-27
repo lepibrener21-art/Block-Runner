@@ -32,7 +32,7 @@ The hash is the main randomness source for everything visual.
 - **Biome theme model:** hybrid — a small set of shader "moods" (target ~5) × continuous palette space.
 - **Per-block variation within an epoch:** epoch locks shader, palette family, and atmosphere; per-block hash varies layout, enemy positions, and small tint shifts.
 
-- **Byte allocation:** see tables below.
+- **Byte allocation:** see tables below. Bitcoin block hashes have several leading zero bytes (the proof-of-work property), so the byte indices below address **entropy-uniform bytes derived from the hash via the central `Rng`** — same input → same 32 bytes, but the distribution is flat. Reading the raw hash directly would pin every visual subsystem (shader mood, intensity, palette anchor A) to zero.
 
 ### Epoch hash (32 bytes) — per-epoch identity
 
