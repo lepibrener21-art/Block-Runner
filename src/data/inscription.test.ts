@@ -72,10 +72,49 @@ describe('findInscription', () => {
       tx([], { coinbase: true, scriptsig: '03a08607' + minerPush }),
       tx([opReturn]),
     ];
-    expect(findInscription(700_000, txs)).toBe('/AntPool/');
+    const result = findInscription(700_000, txs);
+    expect(result).not.toBeNull();
+    const split = result!.split('\n');
+    expect(split[0]).toBe('/AntPool/');
+    expect(split).toContain('user message');
   });
 
-  it('picks the first printable OP_RETURN in tx order', () => {
+  it('stacks multiple printable sources into a multi-line inscription', () => {
+    const minerTag = asciiToHex('/AntPool/');
+    const minerPush = (minerTag.length / 2).toString(16).padStart(2, '0') + minerTag;
+    const op = (s: string): string => {
+      const payload = asciiToHex(s);
+      return `6a${(payload.length / 2).toString(16).padStart(2, '0')}${payload}`;
+    };
+    const txs: MempoolTx[] = [
+      tx([], { coinbase: true, scriptsig: '03a08607' + minerPush }),
+      tx([op('first message')]),
+      tx([op('second message')]),
+      tx([op('third message')]),
+    ];
+    const result = findInscription(700_000, txs);
+    expect(result).not.toBeNull();
+    const lines = result!.split('\n');
+    expect(lines).toEqual(['/AntPool/', 'first message', 'second message', 'third message']);
+  });
+
+  it('deduplicates identical messages across sources', () => {
+    const tag = asciiToHex('/F2Pool/');
+    const tagPush = (tag.length / 2).toString(16).padStart(2, '0') + tag;
+    const op = (s: string): string => {
+      const payload = asciiToHex(s);
+      return `6a${(payload.length / 2).toString(16).padStart(2, '0')}${payload}`;
+    };
+    const txs: MempoolTx[] = [
+      tx([], { coinbase: true, scriptsig: '03a08607' + tagPush }),
+      tx([op('/F2Pool/')]),
+      tx([op('unique')]),
+    ];
+    const result = findInscription(700_000, txs);
+    expect(result?.split('\n')).toEqual(['/F2Pool/', 'unique']);
+  });
+
+  it('preserves OP_RETURN order across txs', () => {
     const first = '6a' + (asciiToHex('first').length / 2).toString(16).padStart(2, '0') + asciiToHex('first');
     const second = '6a' + (asciiToHex('second').length / 2).toString(16).padStart(2, '0') + asciiToHex('second');
     const txs: MempoolTx[] = [
@@ -83,6 +122,7 @@ describe('findInscription', () => {
       tx([first]),
       tx([second]),
     ];
-    expect(findInscription(700_000, txs)).toBe('first');
+    const result = findInscription(700_000, txs);
+    expect(result?.split('\n')).toEqual(['first', 'second']);
   });
 });

@@ -3,7 +3,7 @@ import { getCached, putCached, putManyCached } from './cache.ts';
 import { findInscription } from './inscription.ts';
 import { EPOCH_LENGTH, epochStartHeight, type BlockData } from './types.ts';
 
-const INSCRIPTION_PARSER_VERSION = 2;
+const INSCRIPTION_PARSER_VERSION = 3;
 
 const inflight = new Map<number, Promise<BlockData>>();
 
