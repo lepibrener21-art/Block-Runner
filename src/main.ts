@@ -3,8 +3,9 @@ import { VIEWPORT_H, VIEWPORT_W } from './game/constants.ts';
 import { ArenaScene } from './game/scenes/arena-scene.ts';
 import { BootScene } from './game/scenes/boot-scene.ts';
 import { UIScene } from './game/scenes/ui-scene.ts';
+import { CRTPipeline, CRT_PIPELINE_KEY } from './game/visuals/shaders/crt.ts';
 
-new Phaser.Game({
+const game = new Phaser.Game({
   type: Phaser.AUTO,
   parent: 'game',
   width: VIEWPORT_W,
@@ -26,4 +27,10 @@ new Phaser.Game({
     },
   },
   scene: [BootScene, ArenaScene, UIScene],
+});
+
+game.events.once(Phaser.Core.Events.READY, () => {
+  if (game.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
+    game.renderer.pipelines.addPostPipeline(CRT_PIPELINE_KEY, CRTPipeline);
+  }
 });

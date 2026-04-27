@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { getBlock } from '../../data/blocks.ts';
+import { getBlock, getEpochAnchor } from '../../data/blocks.ts';
 import type { BlockData } from '../../data/types.ts';
 
 const DEFAULT_HEIGHT = 700_000;
@@ -40,11 +40,11 @@ export class BootScene extends Phaser.Scene {
 
     const targetHeight = this.heightFromUrl(DEFAULT_HEIGHT);
 
-    void getBlock(targetHeight)
-      .then((block) => {
+    void Promise.all([getBlock(targetHeight), getEpochAnchor(targetHeight)])
+      .then(([block, epochAnchor]) => {
         status.setText(`Block ${block.height} ready`);
         status.setColor('#9bff7a');
-        this.showStartButton(block);
+        this.showStartButton(block, epochAnchor);
       })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : String(err);
@@ -53,7 +53,7 @@ export class BootScene extends Phaser.Scene {
       });
   }
 
-  private showStartButton(block: BlockData): void {
+  private showStartButton(block: BlockData, epochAnchor: BlockData): void {
     const { width, height } = this.scale;
     const cx = width / 2;
     const cy = height / 2 + 30;
@@ -76,7 +76,7 @@ export class BootScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     const launch = (): void => {
-      this.scene.start('arena', { block });
+      this.scene.start('arena', { block, epochAnchor });
     };
 
     border.setInteractive({ useHandCursor: true });

@@ -19,9 +19,9 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
   static registerTexture(scene: Phaser.Scene): void {
     if (scene.textures.exists(TEXTURE_KEY)) return;
     const g = scene.add.graphics({ x: 0, y: 0 });
-    g.fillStyle(ENEMY.color, 1);
+    g.fillStyle(0xffffff, 1);
     g.fillRect(0, 0, ENEMY.size, ENEMY.size);
-    g.lineStyle(1, 0x000000, 0.6);
+    g.lineStyle(1, 0x202020, 1);
     g.strokeRect(0.5, 0.5, ENEMY.size - 1, ENEMY.size - 1);
     g.generateTexture(TEXTURE_KEY, ENEMY.size, ENEMY.size);
     g.destroy();

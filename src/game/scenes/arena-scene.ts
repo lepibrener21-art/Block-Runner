@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { getBlock } from '../../data/blocks.ts';
+import { getBlock, getEpochAnchor } from '../../data/blocks.ts';
 import type { BlockData } from '../../data/types.ts';
 import {
   ARENA_H_PX,
@@ -7,7 +7,6 @@ import {
   CAMERA_ZOOM,
   ENEMY,
   TILE_SIZE,
-  WALL,
 } from '../constants.ts';
 import { Bullet } from '../entities/bullet.ts';
 import { Enemy } from '../entities/enemy.ts';
@@ -15,15 +14,21 @@ import { Player } from '../entities/player.ts';
 import { generateLevel } from '../level/generator.ts';
 import type { Level, WaveSpec } from '../level/types.ts';
 import { WaveManager } from '../systems/wave-manager.ts';
+import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
+import { CRTPipeline, CRT_PIPELINE_KEY } from '../visuals/shaders/crt.ts';
+import { hslToInt, shiftHsl, type BlockVisuals } from '../visuals/types.ts';
 
 export interface ArenaSceneData {
   block: BlockData;
+  epochAnchor: BlockData;
 }
 
 type EndKind = 'cleared' | 'died';
 
 export class ArenaScene extends Phaser.Scene {
   private block!: BlockData;
+  private epochAnchor!: BlockData;
+  private visuals!: BlockVisuals;
   private level!: Level;
   private player!: Player;
   private enemies!: Phaser.Physics.Arcade.Group;
@@ -41,6 +46,9 @@ export class ArenaScene extends Phaser.Scene {
 
   init(data: ArenaSceneData): void {
     this.block = data.block;
+    this.epochAnchor = data.epochAnchor;
+    const epoch = deriveEpochVisuals(data.epochAnchor.hash);
+    this.visuals = deriveBlockVisuals(data.block.hash, epoch);
     this.level = generateLevel(data.block);
     this.endKind = undefined;
     this.advancing = false;
@@ -51,17 +59,22 @@ export class ArenaScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, ARENA_W_PX, ARENA_H_PX);
     this.cameras.main.setZoom(CAMERA_ZOOM);
     this.cameras.main.centerOn(ARENA_W_PX / 2, ARENA_H_PX / 2);
-    this.cameras.main.setBackgroundColor(0x0d0f1c);
+    this.cameras.main.setBackgroundColor(hslToInt(this.visuals.palette.background));
 
     this.drawArenaBackground();
+    this.drawFog();
     this.drawInscription();
+    this.applyShader();
+
+    const wallFill = hslToInt(this.visuals.palette.primary);
+    const wallStroke = hslToInt(shiftHsl(this.visuals.palette.primary, 0, 0, 0.18));
 
     this.walls = this.physics.add.staticGroup();
     for (const w of this.level.walls) {
       const px = w.x * TILE_SIZE + (w.w * TILE_SIZE) / 2;
       const py = w.y * TILE_SIZE + (w.h * TILE_SIZE) / 2;
-      const rect = this.add.rectangle(px, py, w.w * TILE_SIZE, w.h * TILE_SIZE, WALL.color);
-      rect.setStrokeStyle(1, 0x8088b5, 0.7);
+      const rect = this.add.rectangle(px, py, w.w * TILE_SIZE, w.h * TILE_SIZE, wallFill);
+      rect.setStrokeStyle(1, wallStroke, 0.9);
       this.physics.add.existing(rect, true);
       this.walls.add(rect);
     }
@@ -115,17 +128,38 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private drawArenaBackground(): void {
+    const gridColor = hslToInt(shiftHsl(this.visuals.palette.background, 0, 0, 0.12));
+    const borderColor = hslToInt(shiftHsl(this.visuals.palette.primary, 0, 0, 0.05));
     const grid = this.add.graphics();
-    grid.lineStyle(1, 0x1a2040, 0.6);
+    grid.lineStyle(1, gridColor, 0.8);
     for (let x = TILE_SIZE; x < ARENA_W_PX; x += TILE_SIZE * 4) {
       grid.lineBetween(x, 0, x, ARENA_H_PX);
     }
     for (let y = TILE_SIZE; y < ARENA_H_PX; y += TILE_SIZE * 4) {
       grid.lineBetween(0, y, ARENA_W_PX, y);
     }
-    grid.lineStyle(2, 0x6b73a8, 0.9);
+    grid.lineStyle(2, borderColor, 0.9);
     grid.strokeRect(0.5, 0.5, ARENA_W_PX - 1, ARENA_H_PX - 1);
     grid.setDepth(-10);
+  }
+
+  private drawFog(): void {
+    const density = this.visuals.epoch.fogDensity;
+    if (density <= 0) return;
+    const color = hslToInt(this.visuals.palette.particle);
+    const alpha = 0.05 + density * 0.18;
+    const fog = this.add.rectangle(ARENA_W_PX / 2, ARENA_H_PX / 2, ARENA_W_PX, ARENA_H_PX, color, alpha);
+    fog.setDepth(50);
+  }
+
+  private applyShader(): void {
+    if (this.visuals.epoch.shader !== 'crt') return;
+    this.cameras.main.setPostPipeline(CRTPipeline);
+    const pipeline = this.cameras.main.getPostPipeline(CRTPipeline);
+    if (pipeline instanceof CRTPipeline) {
+      pipeline.setIntensity(this.visuals.epoch.shaderIntensity);
+    }
+    void CRT_PIPELINE_KEY;
   }
 
   private drawInscription(): void {
@@ -145,9 +179,11 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private spawnWave(spec: WaveSpec, idx: number): void {
+    const tint = hslToInt(this.visuals.palette.accent);
     for (const point of spec.spawns) {
       const enemy = new Enemy(this, point.x, point.y);
       enemy.waveIndex = idx;
+      enemy.setTint(tint);
       this.enemies.add(enemy);
       this.waveManager.enemySpawned(idx);
     }
@@ -173,7 +209,7 @@ export class ArenaScene extends Phaser.Scene {
   override update(time: number): void {
     if (this.endKind && !this.advancing) {
       if (this.restartKey?.isDown) {
-        this.scene.restart({ block: this.block });
+        this.scene.restart({ block: this.block, epochAnchor: this.epochAnchor });
         return;
       }
       if (this.endKind === 'cleared' && this.nextKey?.isDown) {
@@ -203,8 +239,11 @@ export class ArenaScene extends Phaser.Scene {
     const nextHeight = this.block.height + 1;
     this.events.emit('hud:loading', `loading block ${nextHeight}…`);
     try {
-      const next = await getBlock(nextHeight);
-      this.scene.restart({ block: next });
+      const [next, anchor] = await Promise.all([
+        getBlock(nextHeight),
+        getEpochAnchor(nextHeight),
+      ]);
+      this.scene.restart({ block: next, epochAnchor: anchor });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.events.emit('hud:loading', `failed to load: ${msg}`);
