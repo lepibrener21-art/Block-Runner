@@ -54,6 +54,7 @@ export class ArenaScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(0x0d0f1c);
 
     this.drawArenaBackground();
+    this.drawInscription();
 
     this.walls = this.physics.add.staticGroup();
     for (const w of this.level.walls) {
@@ -125,6 +126,22 @@ export class ArenaScene extends Phaser.Scene {
     grid.lineStyle(2, 0x6b73a8, 0.9);
     grid.strokeRect(0.5, 0.5, ARENA_W_PX - 1, ARENA_H_PX - 1);
     grid.setDepth(-10);
+  }
+
+  private drawInscription(): void {
+    const text = this.block.inscription;
+    if (!text) return;
+    this.add
+      .text(ARENA_W_PX / 2, ARENA_H_PX / 2, text, {
+        fontFamily: 'monospace',
+        fontSize: '10px',
+        color: '#1a3a8a',
+        align: 'center',
+        wordWrap: { width: ARENA_W_PX - 80, useAdvancedWrap: true },
+      })
+      .setOrigin(0.5)
+      .setAlpha(0.85)
+      .setDepth(-5);
   }
 
   private spawnWave(spec: WaveSpec, idx: number): void {
