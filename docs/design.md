@@ -19,11 +19,11 @@ Block Runner is a top-down roguelike where every Bitcoin block — from the gene
 **Status:** decided.
 
 **Decided:**
-- **Fields per block (A):** `hash`, `bits`, `tx_count`, `timestamp`, `nonce`, `height`. ~50 bytes packed. No `prev_hash` / `merkle_root` / `size` / `weight` / transactions / fees.
-- **Fetch strategy (B):** lazy + epoch-aware. Player picks height `N` → IndexedDB lookup → on miss, fetch `/api/v1/blocks/:N` (returns 15 blocks centered on `N`) and cache all 15. Also fetch the epoch retarget block at `floor(N / 2016) * 2016` if not cached. Worst case: 2 round-trips per fresh load.
-- **Cache & offline (C):** IndexedDB via `idb-keyval`, keyed by height. Cached blocks never expire (block data is immutable modulo reorgs, which we ignore). Service worker caches the app shell so the game itself loads offline. No bundled starter pack for v1.
+- **Fields per block (A):** `hash`, `bits`, `tx_count`, `timestamp`, `nonce`, `height`, plus optional `inscription` (see §12). ~50 bytes packed for the header fields. No `prev_hash` / `merkle_root` / `size` / `weight` / fees.
+- **Fetch strategy (B):** lazy + epoch-aware. Player picks height `N` → IndexedDB lookup → on miss, fetch `/api/v1/blocks/:N` (returns 15 blocks centered on `N`) and cache all 15. Also fetch the epoch retarget block at `floor(N / 2016) * 2016` if not cached. The inscription feature adds **one extra request** per uncached block to `/api/block/:hash/txs/0` (first 25 txs); the parsed inscription is cached alongside the header. Worst case: 3 round-trips per fresh load.
+- **Cache & offline (C):** IndexedDB via `idb-keyval`, keyed by height. Cached blocks never expire (block data is immutable modulo reorgs, which we ignore). The cached record carries an `inscriptionParserVersion` stamp; bumping it invalidates inscription state on next load so the parser can be improved without manual cache clearing. Service worker caches the app shell so the game itself loads offline. No bundled starter pack for v1.
 - **Chain tip (D):** refresh tip height on app focus or every ~10 min via `/api/v1/blocks/tip/height`. Loading by height is always deterministic. Reorgs ignored — they affect only the most recent ~6 blocks and are rare.
-- **Politeness & errors (E):** dedupe in-flight fetches; retry with exponential backoff on network errors (2 retries, 1 s and 3 s); clear UX when a block can't be fetched ("offline + not cached"); always prefer the 15-block batch endpoint over single-block when prefetching.
+- **Politeness & errors (E):** dedupe in-flight fetches; retry with exponential backoff on network errors (2 retries, 1 s and 3 s); clear UX when a block can't be fetched ("offline + not cached"); always prefer the 15-block batch endpoint over single-block when prefetching. Inscription fetch failures are non-fatal — the block is still playable, just without text on the floor.
 
 ---
 
@@ -88,6 +88,9 @@ Open sub-topics tracked in `mapping-rules.md`.
   - UI surfaces total blocks explored and milestones (first halving cleared, N difficulty epochs cleared, etc.).
 - **Leaderboards (4e):** out of v1 (requires backend + anti-cheat). Local "best score per block" only. Post-v1 candidate: shared per-block leaderboards (natural fit since the level is identical for everyone).
 
+**Landed early during M1 polish:**
+- "Press **N** to advance to next block" appears on the LEVEL CLEARED screen as a Single-Block-mode convenience. It fetches block `N+1` and reloads the arena fresh — no state carries over. This is a stepping-stone toward M4's full Run mode (which will keep HP / weapons / buffs and add the 3-choice buff screen between blocks). When M4 lands, this single-block-next behavior becomes the "no run active" fallback or is replaced by the Run flow.
+
 ---
 
 ## 5. Tech stack
@@ -141,16 +144,17 @@ Tech:
 
 **Decided — milestones (6b):**
 
-| # | Milestone | Goal |
-|---|---|---|
-| M0 | Foundations | Scaffold; mempool.space client; IndexedDB cache; deterministic `Rng`; lint rules |
-| M1 | One block, one fight | Deterministic level from one hash; 1 weapon, 1 enemy. Prove the core loop is fun. |
-| M2 | Aesthetics layer | 5 shader moods, palette, atmosphere, time-of-day, era filter |
-| M3 | Full mapping | Difficulty scaling; waves; loot biases; 5 categories; 4 enemy types with aggression tiers |
-| M4 | Run mode | Multi-block runs, persistent state, buff screen, run summary, sats persistence |
-| M5 | Polish & launch | Daily Challenge, completion tracking, unlocks, audio, tutorial, snapshot tests, deploy |
+| # | Milestone | Status | Goal |
+|---|---|---|---|
+| M0 | Foundations | ✅ done | Scaffold; mempool.space client; IndexedDB cache; deterministic `Rng`; lint rules |
+| M1 | One block, one fight | ✅ done | Deterministic level from one hash; 1 weapon, 1 enemy. Prove the core loop is fun. |
+| M1.5 | Polish + early extras | ✅ done | Dedicated UI scene; pause / restart / next-block; START button; multi-line inscriptions on the floor (§12). Not in original plan — landed organically before M2. |
+| M2 | Aesthetics layer | next | 5 shader moods, palette, atmosphere, time-of-day, era filter |
+| M3 | Full mapping | pending | Difficulty scaling; waves; loot biases; 5 categories; 4 enemy types with aggression tiers |
+| M4 | Run mode | pending | Multi-block runs, persistent state, buff screen, run summary, sats persistence |
+| M5 | Polish & launch | pending | Daily Challenge, completion tracking, unlocks, audio, tutorial, snapshot tests, deploy |
 
-M1 is the make-or-break milestone — if the core loop isn't fun on a single block, biome variation can't rescue it.
+M1 was the make-or-break milestone; the core loop reads as fun on a single block, so we can confidently scale the aesthetics layer on top.
 
 **Decided — out of v1 (6c):** mod / scripting hooks, curated themed runs, global leaderboards, characters / cosmetics, mobile / desktop builds, reorg handling, bundled starter pack, full-simulation determinism, multiplayer.
 
@@ -174,6 +178,12 @@ M1 is the make-or-break milestone — if the core loop isn't fun on a single blo
 - **Movement speed:** 5 tiles/sec baseline (16 px tiles → 80 px/sec at zoom 1).
 - **Dodge roll on Space:** ~0.3 s duration, ~3 tiles of travel, ~0.4 s iframes during the roll, ~0.8 s cooldown.
 - **Player palette:** color-stable across all biomes — the player never re-tints with the epoch palette. Biomes tint everything else. Critical for readability.
+
+**Meta keys (added during M1 polish):**
+- **Esc** — toggle pause. Disabled while an end-state overlay is showing so it doesn't compete with R/N. Pause is owned by the UI scene; arena physics + update halt via `scene.pause('arena')`.
+- **R** — restart the current block from the LEVEL CLEARED or YOU DIED screen.
+- **N** — on LEVEL CLEARED only, fetch and load block `N+1`. See §4 "Landed early during M1 polish" for the run-mode interaction.
+- **Enter / Space** — confirm START on the boot screen (in addition to clicking the button).
 
 ---
 
@@ -234,10 +244,38 @@ Intensity comes from byte 1 of the epoch hash, mapped into each mood's specific 
 
 ---
 
+## 12. Block inscriptions
+
+**Status:** decided & shipped (post-M1).
+
+Each block carries a textual inscription — the printable text mined or stamped into its transactions — rendered on the arena floor in dark blue, behind gameplay. This is decoration, not gameplay; it gives every block textual identity beyond the procgen layout.
+
+**Decided:**
+- **Sources, in priority order, from the first 25 transactions of a block:**
+  1. The coinbase scriptsig of tx 0 — modern blocks contain miner pool tags here ("/Foundry USA Pool/", "/AntPool/", "/F2Pool/", etc.). Genesis contains Satoshi's "Chancellor on brink…" headline.
+  2. OP_RETURN payloads in non-coinbase txs, in tx order.
+- **Filter:** the longest run of printable ASCII bytes (`0x20–0x7e`) inside each candidate, must be ≥ 4 chars. Whitespace collapsed; per-line cap 110 chars with ellipsis truncation.
+- **Stacking:** up to **5 lines** per block, deduped, joined with newlines. So a typical modern block shows the miner tag plus a few OP_RETURN messages stacked beneath.
+- **Determinism:** deterministic per `(block, parser version)`. Same block height → same inscription for everyone, every time. Bumping `INSCRIPTION_PARSER_VERSION` invalidates cached entries so previously-stored blocks re-fetch under the new parser.
+- **Render:** centered on the floor at depth `-5` (between the grid at `-10` and walls/entities at `0`). Color `#1a3a8a`, alpha `0.85`. Word-wrap to arena width minus margin. Walls and entities draw on top, so it reads like an inscription on the ground.
+- **Failure mode:** non-fatal. If the tx fetch fails, the block is still playable, just with no text on the floor.
+
+**Out of scope (for now):**
+- Witness-data Ordinals (extra parsing, often binary).
+- Scanning beyond the first 25 transactions (would multiply API calls per block).
+- Showing binary OP_RETURNs as text (would render as garbled "?????" — not useful).
+- Curated highlight reel (e.g. "blocks with famous messages") — could be a post-launch tour mode.
+
+---
+
 ## Decisions log
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-27** — Block inscriptions (§12): floor inscriptions stack up to 5 deduped, printable ASCII lines pulled from the coinbase scriptsig (priority) plus OP_RETURNs of the first 25 txs, joined with newlines. Per-line cap 110 chars; render in dark blue at depth `-5`. Cache stamped with `inscriptionParserVersion` so future parser bumps invalidate stale entries automatically.
+- **2026-04-26** — Boot screen no longer auto-starts: block loads in the background and the player clicks **START** (or presses Enter / Space) to enter the arena.
+- **2026-04-26** — Meta keys added (§7): **Esc** toggles pause via `scene.pause('arena')` (disabled while end-state is showing); **R** restarts the current block on LEVEL CLEARED / YOU DIED; **N** on LEVEL CLEARED fetches block `N+1` and reloads. The N-key behavior predates Run mode and lives as a Single-Block convenience until M4 (§4).
+- **2026-04-26** — HUD lives in a dedicated `UIScene` running parallel to the arena at 1:1 viewport scale. Replaces the prior in-arena HUD that fought camera zoom; the centered end-state ("LEVEL CLEARED" / "YOU DIED") and the pause overlay both live here. Communication is event-based (`hud:state`, `hud:end`, `hud:reset`, `hud:loading`).
 - **2026-04-25** — Pre-impl follow-ups (a–d): player palette stays color-stable across biomes (#7); projectiles are blocked by walls (#8); obstacles are walls-only for v1 (#9); player spawns at arena center on block load (#9).
 - **2026-04-25** — Five pre-impl topics decided (#7–#11): twin-stick controls (WASD + mouse + Space dodge, 100 HP, 5 tiles/sec); ranged projectile combat with hold-to-fire; single open arena per block (~40×30 tiles, fixed size, PRNG drives obstacles/spawns/loot positions); 16×16 pixel art at 2× zoom with simple silhouettes; 5 named shader moods (CRT, Glitch, Watercolor, Neon, Vintage) with concrete intensity ranges.
 - **2026-04-25** — v1 scope locked (#6): launch definition (modes, enemies, weapons, loot, visuals, tech), milestones M0–M5, out-of-scope list, and launch success criteria all set; M1 is the make-or-break gate. Five new pre-impl topics opened (#7 player, #8 combat, #9 map, #10 art direction, #11 shader moods).
