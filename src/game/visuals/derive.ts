@@ -14,8 +14,11 @@ const SAT_RANGE = 0.55;
 const LIGHT_MIN = 0.35;
 const LIGHT_RANGE = 0.35;
 
-const PER_BLOCK_HUE_RANGE = 12;
-const PER_BLOCK_SAT_RANGE = 0.08;
+const PARTICLE_HUE_RANGE = 20;
+const PARTICLE_SAT_RANGE = 0.15;
+
+const PER_BLOCK_HUE_RANGE = 10;
+const PER_BLOCK_SAT_RANGE = 0.1;
 
 function hslFromBytes(hueByte: number, satByte: number, lightByte: number): HSL {
   return {
@@ -25,12 +28,20 @@ function hslFromBytes(hueByte: number, satByte: number, lightByte: number): HSL 
   };
 }
 
-function buildPalette(anchorA: HSL, anchorB: HSL): Palette {
+function buildPalette(anchorA: HSL, anchorB: HSL, particleHueByte: number, particleSatByte: number): Palette {
+  const dh = ((particleHueByte / 255) * 2 - 1) * PARTICLE_HUE_RANGE;
+  const ds = ((particleSatByte / 255) * 2 - 1) * PARTICLE_SAT_RANGE;
+  const baseParticleS = anchorB.s * 0.5;
+  const baseParticleL = Math.min(0.85, anchorB.l + 0.2);
   return {
     primary: anchorA,
     accent: anchorB,
     background: { h: anchorA.h, s: anchorA.s * 0.6, l: Math.max(0.05, anchorA.l * 0.18) },
-    particle: { h: anchorB.h, s: anchorB.s * 0.5, l: Math.min(0.85, anchorB.l + 0.2) },
+    particle: {
+      h: (((anchorB.h + dh) % 360) + 360) % 360,
+      s: Math.min(1, Math.max(0, baseParticleS + ds)),
+      l: baseParticleL,
+    },
   };
 }
 
@@ -45,7 +56,7 @@ export function deriveEpochVisuals(epochHashHex: string): EpochVisuals {
 
   const anchorA = hslFromBytes(bytes[2]!, bytes[3]!, bytes[4]!);
   const anchorB = hslFromBytes(bytes[5]!, bytes[6]!, bytes[7]!);
-  const palette = buildPalette(anchorA, anchorB);
+  const palette = buildPalette(anchorA, anchorB, bytes[10]!, bytes[11]!);
 
   return {
     shader,

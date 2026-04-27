@@ -42,7 +42,7 @@ The hash is the main randomness source for everything visual.
 | 1 | Shader intensity | 0–255 → per-mood intensity range. |
 | 2–7 | Palette | Two HSL anchor points (3 bytes each: H, S, L) defining the epoch's color gradient. |
 | 8 | Fog density | 0–255 → 0.0–1.0. |
-| 9 | Particle density | 0–255 → particles per screen. |
+| 9 | Particle density | 0–255 → particles per screen. _Particle rendering itself is M2 phase 2; the value is parsed into `EpochVisuals` already._ |
 | 10–11 | Particle hue + saturation | Tinted relative to palette. |
 | 12 | Ambient light tone | Cool ↔ warm. |
 | 13 | Ambient light intensity | Dim ↔ bright. |
