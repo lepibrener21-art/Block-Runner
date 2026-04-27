@@ -4,6 +4,7 @@ import { ArenaScene } from './game/scenes/arena-scene.ts';
 import { BootScene } from './game/scenes/boot-scene.ts';
 import { UIScene } from './game/scenes/ui-scene.ts';
 import { CRTPipeline, CRT_PIPELINE_KEY } from './game/visuals/shaders/crt.ts';
+import { GlitchPipeline, GLITCH_PIPELINE_KEY } from './game/visuals/shaders/glitch.ts';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -32,5 +33,6 @@ const game = new Phaser.Game({
 game.events.once(Phaser.Core.Events.READY, () => {
   if (game.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
     game.renderer.pipelines.addPostPipeline(CRT_PIPELINE_KEY, CRTPipeline);
+    game.renderer.pipelines.addPostPipeline(GLITCH_PIPELINE_KEY, GlitchPipeline);
   }
 });
