@@ -6,7 +6,7 @@ export interface BlockData {
   nonce: number;
   txCount: number;
   inscription?: string;
-  inscriptionFetched?: boolean;
+  inscriptionParserVersion?: number;
 }
 
 export const EPOCH_LENGTH = 2016;

@@ -63,13 +63,11 @@ function fromOpReturn(scriptpubkeyHex: string): string | null {
   return truncate(text);
 }
 
-export function findInscription(height: number, txs: readonly MempoolTx[]): string | null {
-  if (height === 0) {
-    const cb = txs[0]?.vin[0]?.scriptsig;
-    if (cb) {
-      const msg = fromCoinbaseScriptsig(cb);
-      if (msg) return msg;
-    }
+export function findInscription(_height: number, txs: readonly MempoolTx[]): string | null {
+  const cb = txs[0]?.vin[0]?.scriptsig;
+  if (cb) {
+    const msg = fromCoinbaseScriptsig(cb);
+    if (msg) return msg;
   }
 
   for (const tx of txs) {

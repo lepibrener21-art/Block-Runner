@@ -52,6 +52,29 @@ describe('findInscription', () => {
     expect(findInscription(700_000, txs)).toBeNull();
   });
 
+  it('extracts a miner tag from a non-genesis coinbase scriptsig', () => {
+    const heightPush = '03a08607';
+    const tag = asciiToHex('/Foundry USA Pool #dropgold/');
+    const tagPush = (tag.length / 2).toString(16).padStart(2, '0') + tag;
+    const txs: MempoolTx[] = [
+      tx([], { coinbase: true, scriptsig: heightPush + tagPush }),
+      tx(['76a914' + '11'.repeat(20) + '88ac']),
+    ];
+    expect(findInscription(700_000, txs)).toBe('/Foundry USA Pool #dropgold/');
+  });
+
+  it('prefers coinbase scriptsig over OP_RETURN when both are printable', () => {
+    const minerTag = asciiToHex('/AntPool/');
+    const minerPush = (minerTag.length / 2).toString(16).padStart(2, '0') + minerTag;
+    const opPayload = asciiToHex('user message');
+    const opReturn = `6a${(opPayload.length / 2).toString(16).padStart(2, '0')}${opPayload}`;
+    const txs: MempoolTx[] = [
+      tx([], { coinbase: true, scriptsig: '03a08607' + minerPush }),
+      tx([opReturn]),
+    ];
+    expect(findInscription(700_000, txs)).toBe('/AntPool/');
+  });
+
   it('picks the first printable OP_RETURN in tx order', () => {
     const first = '6a' + (asciiToHex('first').length / 2).toString(16).padStart(2, '0') + asciiToHex('first');
     const second = '6a' + (asciiToHex('second').length / 2).toString(16).padStart(2, '0') + asciiToHex('second');
