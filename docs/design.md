@@ -149,7 +149,7 @@ Tech:
 | M0 | Foundations | ✅ done | Scaffold; mempool.space client; IndexedDB cache; deterministic `Rng`; lint rules |
 | M1 | One block, one fight | ✅ done | Deterministic level from one hash; 1 weapon, 1 enemy. Prove the core loop is fun. |
 | M1.5 | Polish + early extras | ✅ done | Dedicated UI scene; pause / restart / next-block; START button; multi-line inscriptions on the floor (§12). Not in original plan — landed organically before M2. |
-| M2 | Aesthetics layer | next | 5 shader moods, palette, atmosphere, time-of-day, era filter |
+| M2 | Aesthetics layer | 🚧 in progress | 5 shader moods, palette, atmosphere, time-of-day, era filter. **Phase 1 done:** epoch + per-block palette, walls/enemies/grid tinting, fog overlay, CRT shader pipeline. **Phase 2 pending:** glitch / watercolor / neon / vintage shaders, particle rendering, time-of-day modulator, era post-process fade. |
 | M3 | Full mapping | pending | Difficulty scaling; waves; loot biases; 5 categories; 4 enemy types with aggression tiers |
 | M4 | Run mode | pending | Multi-block runs, persistent state, buff screen, run summary, sats persistence |
 | M5 | Polish & launch | pending | Daily Challenge, completion tracking, unlocks, audio, tutorial, snapshot tests, deploy |
@@ -232,15 +232,15 @@ M1 was the make-or-break milestone; the core loop reads as fun on a single block
 
 **Decided:** five named moods, each implementable as a single fragment shader.
 
-| # | Mood | Effect | Intensity range |
-|---|---|---|---|
-| 1 | CRT | scanlines + bloom + slight barrel distortion | scanline opacity 0.2–0.6 |
-| 2 | Glitch | chromatic aberration + occasional pixel-shift bands | aberration 0–4 px, band frequency 0–0.3 |
-| 3 | Watercolor | low-pass blur + color bleeding + paper grain | blur 0–2 px, bleed 0–0.5 |
-| 4 | Neon | bloom + saturation boost + bright edge outline | bloom 0–1.0, saturation 1.0–1.6 |
-| 5 | Vintage | sepia tint + film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 |
+| # | Mood | Effect | Intensity range | Status |
+|---|---|---|---|---|
+| 1 | CRT | scanlines + bloom + slight barrel distortion | scanline opacity 0.2–0.6 | ✅ shipped (M2 phase 1) |
+| 2 | Glitch | chromatic aberration + occasional pixel-shift bands | aberration 0–4 px, band frequency 0–0.3 | ✅ shipped (M2 phase 2) |
+| 3 | Watercolor | low-pass blur + color bleeding + paper grain | blur 0–2 px, bleed 0–0.5 | ✅ shipped (M2 phase 2) |
+| 4 | Neon | bloom + saturation boost + bright edge outline | bloom 0–1.0, saturation 1.0–1.6 | M2 phase 2 |
+| 5 | Vintage | sepia tint + film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 | M2 phase 2 |
 
-Intensity comes from byte 1 of the epoch hash, mapped into each mood's specific range.
+Intensity comes from byte 1 of the epoch hash, mapped into each mood's specific range. While phase 2 shaders are pending, blocks whose epoch picks an unshipped mood render with no post-FX overlay (palette + atmosphere still apply normally).
 
 ---
 
@@ -272,6 +272,7 @@ Each block carries a textual inscription — the printable text mined or stamped
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-27** — M2 phase 1 shipped: `src/game/visuals/` derives `EpochVisuals` and `BlockVisuals` from the byte allocation in `mapping-rules.md` §1e (palette anchors, particle hue/sat shift, fog/particle density, ambient tone + intensity, shader mood + intensity). Walls and enemies tint via the palette; grid + arena boundary use shifted shades; fog renders as a single overlay; player stays color-stable. CRT post-FX pipeline is wired end-to-end (registered on the renderer once `READY` fires; attached to the camera only when the epoch's chosen mood is `crt`). Particle rendering plus the other 4 shaders + time-of-day + era filter are M2 phase 2.
 - **2026-04-27** — Block inscriptions (§12): floor inscriptions stack up to 5 deduped, printable ASCII lines pulled from the coinbase scriptsig (priority) plus OP_RETURNs of the first 25 txs, joined with newlines. Per-line cap 110 chars; render in dark blue at depth `-5`. Cache stamped with `inscriptionParserVersion` so future parser bumps invalidate stale entries automatically.
 - **2026-04-26** — Boot screen no longer auto-starts: block loads in the background and the player clicks **START** (or presses Enter / Space) to enter the arena.
 - **2026-04-26** — Meta keys added (§7): **Esc** toggles pause via `scene.pause('arena')` (disabled while end-state is showing); **R** restarts the current block on LEVEL CLEARED / YOU DIED; **N** on LEVEL CLEARED fetches block `N+1` and reloads. The N-key behavior predates Run mode and lives as a Single-Block convenience until M4 (§4).

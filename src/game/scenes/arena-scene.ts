@@ -15,7 +15,9 @@ import { generateLevel } from '../level/generator.ts';
 import type { Level, WaveSpec } from '../level/types.ts';
 import { WaveManager } from '../systems/wave-manager.ts';
 import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
-import { CRTPipeline, CRT_PIPELINE_KEY } from '../visuals/shaders/crt.ts';
+import { CRTPipeline } from '../visuals/shaders/crt.ts';
+import { GlitchPipeline } from '../visuals/shaders/glitch.ts';
+import { WatercolorPipeline } from '../visuals/shaders/watercolor.ts';
 import { hslToInt, shiftHsl, type BlockVisuals } from '../visuals/types.ts';
 
 export interface ArenaSceneData {
@@ -153,13 +155,29 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private applyShader(): void {
-    if (this.visuals.epoch.shader !== 'crt') return;
-    this.cameras.main.setPostPipeline(CRTPipeline);
-    const pipeline = this.cameras.main.getPostPipeline(CRTPipeline);
-    if (pipeline instanceof CRTPipeline) {
-      pipeline.setIntensity(this.visuals.epoch.shaderIntensity);
+    const intensity = this.visuals.epoch.shaderIntensity;
+    switch (this.visuals.epoch.shader) {
+      case 'crt': {
+        this.cameras.main.setPostPipeline(CRTPipeline);
+        const pipe = this.cameras.main.getPostPipeline(CRTPipeline);
+        if (pipe instanceof CRTPipeline) pipe.setIntensity(intensity);
+        return;
+      }
+      case 'glitch': {
+        this.cameras.main.setPostPipeline(GlitchPipeline);
+        const pipe = this.cameras.main.getPostPipeline(GlitchPipeline);
+        if (pipe instanceof GlitchPipeline) pipe.setIntensity(intensity);
+        return;
+      }
+      case 'watercolor': {
+        this.cameras.main.setPostPipeline(WatercolorPipeline);
+        const pipe = this.cameras.main.getPostPipeline(WatercolorPipeline);
+        if (pipe instanceof WatercolorPipeline) pipe.setIntensity(intensity);
+        return;
+      }
+      default:
+        return;
     }
-    void CRT_PIPELINE_KEY;
   }
 
   private drawInscription(): void {
