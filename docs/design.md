@@ -236,7 +236,7 @@ M1 was the make-or-break milestone; the core loop reads as fun on a single block
 |---|---|---|---|---|
 | 1 | CRT | scanlines + bloom + slight barrel distortion | scanline opacity 0.2–0.6 | ✅ shipped (M2 phase 1) |
 | 2 | Glitch | chromatic aberration + occasional pixel-shift bands | aberration 0–4 px, band frequency 0–0.3 | ✅ shipped (M2 phase 2) |
-| 3 | Watercolor | low-pass blur + color bleeding + paper grain | blur 0–2 px, bleed 0–0.5 | M2 phase 2 |
+| 3 | Watercolor | low-pass blur + color bleeding + paper grain | blur 0–2 px, bleed 0–0.5 | ✅ shipped (M2 phase 2) |
 | 4 | Neon | bloom + saturation boost + bright edge outline | bloom 0–1.0, saturation 1.0–1.6 | M2 phase 2 |
 | 5 | Vintage | sepia tint + film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 | M2 phase 2 |
 

@@ -5,6 +5,7 @@ import { BootScene } from './game/scenes/boot-scene.ts';
 import { UIScene } from './game/scenes/ui-scene.ts';
 import { CRTPipeline, CRT_PIPELINE_KEY } from './game/visuals/shaders/crt.ts';
 import { GlitchPipeline, GLITCH_PIPELINE_KEY } from './game/visuals/shaders/glitch.ts';
+import { WatercolorPipeline, WATERCOLOR_PIPELINE_KEY } from './game/visuals/shaders/watercolor.ts';
 
 const game = new Phaser.Game({
   type: Phaser.AUTO,
@@ -34,5 +35,6 @@ game.events.once(Phaser.Core.Events.READY, () => {
   if (game.renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer) {
     game.renderer.pipelines.addPostPipeline(CRT_PIPELINE_KEY, CRTPipeline);
     game.renderer.pipelines.addPostPipeline(GLITCH_PIPELINE_KEY, GlitchPipeline);
+    game.renderer.pipelines.addPostPipeline(WATERCOLOR_PIPELINE_KEY, WatercolorPipeline);
   }
 });
