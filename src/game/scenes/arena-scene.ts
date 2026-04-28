@@ -17,6 +17,7 @@ import { WaveManager } from '../systems/wave-manager.ts';
 import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
 import { CRTPipeline } from '../visuals/shaders/crt.ts';
 import { GlitchPipeline } from '../visuals/shaders/glitch.ts';
+import { NeonPipeline } from '../visuals/shaders/neon.ts';
 import { WatercolorPipeline } from '../visuals/shaders/watercolor.ts';
 import { hslToInt, shiftHsl, type BlockVisuals } from '../visuals/types.ts';
 
@@ -173,6 +174,12 @@ export class ArenaScene extends Phaser.Scene {
         this.cameras.main.setPostPipeline(WatercolorPipeline);
         const pipe = this.cameras.main.getPostPipeline(WatercolorPipeline);
         if (pipe instanceof WatercolorPipeline) pipe.setIntensity(intensity);
+        return;
+      }
+      case 'neon': {
+        this.cameras.main.setPostPipeline(NeonPipeline);
+        const pipe = this.cameras.main.getPostPipeline(NeonPipeline);
+        if (pipe instanceof NeonPipeline) pipe.setIntensity(intensity);
         return;
       }
       default:
