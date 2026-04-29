@@ -1,13 +1,8 @@
 import Phaser from 'phaser';
 import { getBlock, getEpochAnchor } from '../../data/blocks.ts';
 import type { BlockData } from '../../data/types.ts';
-import {
-  ARENA_H_PX,
-  ARENA_W_PX,
-  CAMERA_ZOOM,
-  ENEMY,
-  TILE_SIZE,
-} from '../constants.ts';
+import { ARENA_H_PX, ARENA_W_PX, CAMERA_ZOOM, TILE_SIZE } from '../constants.ts';
+import { difficultyMultipliers } from '../difficulty.ts';
 import { Bullet } from '../entities/bullet.ts';
 import { Enemy } from '../entities/enemy.ts';
 import { Player } from '../entities/player.ts';
@@ -113,8 +108,9 @@ export class ArenaScene extends Phaser.Scene {
       if (killed) this.waveManager.enemyKilled(waveIdx, this.time.now);
     });
     this.physics.add.overlap(this.player, this.enemies, (_p, enemyObj) => {
-      if (!(enemyObj as Enemy).active) return;
-      this.player.takeDamage(ENEMY.contactDamage, this.time.now);
+      const enemy = enemyObj as Enemy;
+      if (!enemy.active) return;
+      this.player.takeDamage(enemy.contactDamage, this.time.now);
     });
 
     this.waveManager = new WaveManager(this.level, {
@@ -309,9 +305,11 @@ export class ArenaScene extends Phaser.Scene {
 
   private spawnWave(spec: WaveSpec, idx: number): void {
     const tint = hslToInt(this.visuals.palette.accent);
+    const mults = difficultyMultipliers(this.block.bits);
     for (const point of spec.spawns) {
       const enemy = new Enemy(this, point.x, point.y);
       enemy.waveIndex = idx;
+      enemy.applyDifficulty(mults);
       enemy.setTint(tint);
       this.enemies.add(enemy);
       this.waveManager.enemySpawned(idx);

@@ -82,6 +82,8 @@ Section 1 closed. Move on to §2.
 
 Exact `k` values and aggression thresholds will be tuned in playtesting; the framework above is the design contract.
 
+**Shipped (M3):** stat scaling. `src/game/difficulty.ts` derives `log10(difficulty)` directly from `block.bits` (compact target encoding) without ever materialising the huge integer target — `targetLog10 = log10(mantissa) + 8 × (exponent − 3) × log10(2)`, and `log10(difficulty) = log10(maxTarget) − targetLog10`. From there, `difficultyMultipliers(bits)` returns `{ hp, damage, speed }` capped at the design ceilings (8× / 3× / 1.5×) using the `k` values above. `Enemy.applyDifficulty(mults)` rounds HP and damage to integers and scales speed; `ArenaScene.spawnWave` computes the multiplier triple once per wave from `block.bits` and applies it to every enemy spawned in that wave. Aggression-tier behaviour unlocks remain pending — they belong with the M3 enemy-types pass.
+
 **Open sub-questions:** none.
 
 ---
