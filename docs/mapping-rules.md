@@ -42,8 +42,8 @@ The hash is the main randomness source for everything visual.
 | 1 | Shader intensity | 0–255 → per-mood intensity range. |
 | 2–7 | Palette | Two HSL anchor points (3 bytes each: H, S, L) defining the epoch's color gradient. |
 | 8 | Fog density | 0–255 → 0.0–1.0. |
-| 9 | Particle density | 0–255 → particles per screen. _Particle rendering itself is M2 phase 2; the value is parsed into `EpochVisuals` already._ |
-| 10–11 | Particle hue + saturation | Tinted relative to palette. |
+| 9 | Particle density | 0–255 → 8–80 particles alive at a time, drifting across the arena with a sine-faded alpha. Coloured by bytes 10–11 (particle hue + saturation) on top of the accent-derived base. |
+| 10–11 | Particle hue + saturation | Tinted relative to palette. Byte 10 nudges the particle hue ±20° from the accent-derived base; byte 11 nudges saturation ±0.15. |
 | 12 | Ambient light tone | Cool ↔ warm. |
 | 13 | Ambient light intensity | Dim ↔ bright. |
 | 14–31 | _reserved_ | Headroom for future epoch-level features. |
@@ -121,6 +121,10 @@ Specific tuning numbers (the constants in the formulas) will be revisited in pla
   3. Era filter — post-process pass on the final image.
 - Time-of-day **modulates** the epoch's ambient light; it does not replace it. Each axis adds independent flavor, none overrides the others.
 - Era intensity is a **continuous fade** based on years since genesis (no abrupt jumps between adjacent blocks).
+
+**Shipped (M2 phase 2):**
+- **Time-of-day:** interpolates between four anchor stops over the day (midnight 220° / s 0.55 / l 0.15 / α 0.35 → sunrise 25° / s 0.65 / l 0.50 / α 0.22 → noon 60° / s 0.15 / l 0.90 / α 0.06 → sunset 12° / s 0.65 / l 0.45 / α 0.22 → wraps back to midnight). Renders as a screen-tint rectangle at depth 70, above particles (60), below the HUD camera, on top of which the active mood shader runs.
+- **Era post-process:** continuous linear fade — `intensity = clamp(0, 1, 1 − years_since_genesis / 17)`, so genesis = 1.0, 2017.5 ≈ 0.5, 2026+ = 0. Implemented as a second post-FX pipeline on the camera, run *after* the active mood shader, so the layer order is epoch base → time-of-day overlay → mood shader → era filter. The era pipeline applies a cream-toned wash on luminance, mild desaturation, animated film grain, faint horizontal scanlines, and a soft vignette — each effect scaled by `intensity` so modern blocks are untouched and old blocks read clearly aged.
 
 **Open sub-questions:** none.
 

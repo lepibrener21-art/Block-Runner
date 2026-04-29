@@ -149,7 +149,7 @@ Tech:
 | M0 | Foundations | ✅ done | Scaffold; mempool.space client; IndexedDB cache; deterministic `Rng`; lint rules |
 | M1 | One block, one fight | ✅ done | Deterministic level from one hash; 1 weapon, 1 enemy. Prove the core loop is fun. |
 | M1.5 | Polish + early extras | ✅ done | Dedicated UI scene; pause / restart / next-block; START button; multi-line inscriptions on the floor (§12). Not in original plan — landed organically before M2. |
-| M2 | Aesthetics layer | 🚧 in progress | 5 shader moods, palette, atmosphere, time-of-day, era filter. **Phase 1 done:** epoch + per-block palette, walls/enemies/grid tinting, fog overlay, CRT shader pipeline. **Phase 2 pending:** glitch / watercolor / neon / vintage shaders, particle rendering, time-of-day modulator, era post-process fade. |
+| M2 | Aesthetics layer | ✅ done | 5 shader moods (CRT, Glitch, Watercolor, Neon, Vintage), epoch + per-block palette, walls/enemies/grid tinting, fog overlay, drifting particles, time-of-day modulator, era post-process fade. Era + mood are stacked on the camera as a two-pipeline post-FX. |
 | M3 | Full mapping | pending | Difficulty scaling; waves; loot biases; 5 categories; 4 enemy types with aggression tiers |
 | M4 | Run mode | pending | Multi-block runs, persistent state, buff screen, run summary, sats persistence |
 | M5 | Polish & launch | pending | Daily Challenge, completion tracking, unlocks, audio, tutorial, snapshot tests, deploy |
@@ -238,9 +238,9 @@ M1 was the make-or-break milestone; the core loop reads as fun on a single block
 | 2 | Glitch | chromatic aberration + occasional pixel-shift bands | aberration 0–4 px, band frequency 0–0.3 | ✅ shipped (M2 phase 2) |
 | 3 | Watercolor | low-pass blur + color bleeding + paper grain + mild desaturation | blur 1–4 px, bleed 0.4–1.0, grain alpha 0.06–0.16 | ✅ shipped (M2 phase 2) |
 | 4 | Neon | two-ring bloom + saturation boost + bright edge outline + vignette | saturation 1.15–1.80, bloom 0.4–1.0, vignette 0.0–0.45 | ✅ shipped (M2 phase 2) |
-| 5 | Vintage | sepia tint + film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 | M2 phase 2 |
+| 5 | Vintage | sepia tint + animated film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 | ✅ shipped (M2 phase 2) |
 
-Intensity comes from byte 1 of the entropy-uniform bytes derived from the epoch hash, mapped into each mood's specific range. Each shader floors its effective intensity at ~0.4 internally (`mix(0.4, 1.0, byteIntensity)`) so even a low-byte epoch shows a clear effect, and the chosen mood doesn't fade to "no shader at all". While phase 2 shaders are pending, blocks whose epoch picks an unshipped mood render with no post-FX overlay (palette + atmosphere still apply normally).
+Intensity comes from byte 1 of the entropy-uniform bytes derived from the epoch hash, mapped into each mood's specific range. Each shader floors its effective intensity at ~0.4 internally (`mix(0.4, 1.0, byteIntensity)`) so even a low-byte epoch shows a clear effect, and the chosen mood doesn't fade to "no shader at all". All five moods are now shipped — every block lands on a real post-FX pipeline regardless of which slot its epoch hash picks.
 
 ---
 
@@ -248,7 +248,7 @@ Intensity comes from byte 1 of the entropy-uniform bytes derived from the epoch 
 
 **Status:** decided & shipped (post-M1).
 
-Each block carries a textual inscription — the printable text mined or stamped into its transactions — rendered on the arena floor in dark blue, behind gameplay. This is decoration, not gameplay; it gives every block textual identity beyond the procgen layout.
+Each block carries a textual inscription — the printable text mined or stamped into its transactions — rendered on the arena floor as a blue inscription, behind gameplay. This is decoration, not gameplay; it gives every block textual identity beyond the procgen layout.
 
 **Decided:**
 - **Sources, in priority order, from the first 25 transactions of a block:**
@@ -257,7 +257,7 @@ Each block carries a textual inscription — the printable text mined or stamped
 - **Filter:** the longest run of printable ASCII bytes (`0x20–0x7e`) inside each candidate, must be ≥ 4 chars. Whitespace collapsed; per-line cap 110 chars with ellipsis truncation.
 - **Stacking:** up to **5 lines** per block, deduped, joined with newlines. So a typical modern block shows the miner tag plus a few OP_RETURN messages stacked beneath.
 - **Determinism:** deterministic per `(block, parser version)`. Same block height → same inscription for everyone, every time. Bumping `INSCRIPTION_PARSER_VERSION` invalidates cached entries so previously-stored blocks re-fetch under the new parser.
-- **Render:** centered on the floor at depth `-5` (between the grid at `-10` and walls/entities at `0`). Color `#1a3a8a`, alpha `0.85`. Word-wrap to arena width minus margin. Walls and entities draw on top, so it reads like an inscription on the ground.
+- **Render:** centered on the floor at depth `-5` (between the grid at `-10` and walls/entities at `0`). Always blue identity (hue **215**), saturation **0.60**, lightness contrast-clamped against the epoch background (`clamp(0.50, 0.78, 0.55 + (0.20 − bg.l) × 1.6)`) so darker biome floors get brighter text. Alpha **0.78**, 2 px same-blue stroke at lower lightness for edge legibility. Word-wrap to arena width minus margin. Walls and entities draw on top, so it reads like an inscription on the ground. The text is part of the camera output and so receives the active mood shader pass — color and stroke are tuned to survive blur / vignette / scanlines without dominating.
 - **Failure mode:** non-fatal. If the tx fetch fails, the block is still playable, just with no text on the floor.
 
 **Out of scope (for now):**
@@ -272,6 +272,14 @@ Each block carries a textual inscription — the printable text mined or stamped
 
 A short, dated list of decisions as they're made. Newest at the top.
 
+- **2026-04-29** — Inscription text bumped to survive shader processing: alpha 0.55 → 0.78, saturation 0.55 → 0.60, lightness floor 0.40 → 0.50 / ceiling 0.70 → 0.78, stroke thickness 1 → 2 px. Watercolor blur, Neon vignette, Glitch aberration, and CRT scanlines all run as camera post-FX and were attenuating the floor text; punchier base values keep it readable through every mood without dominating.
+- **2026-04-29** — Watercolor and Neon strengthened to read distinct: Watercolor uses a 5×5 sample with 1–4 px blur, stronger pigment bleed, mild overall desaturation (real watercolour isn't punchy), always-on paper grain. Neon ranges saturation 1.15–1.80, gains a two-ring bloom (radii 3 px and 6 px), and adds a corner vignette so glowing centre pixels read against darker borders. Both shaders floor effective intensity at 0.4 internally so a low byte still produces a clear effect.
+- **2026-04-28** — Vintage shader shipped (M2 phase 2, mood 5 of 5). NTSC-matrix sepia tint, animated 24 Hz film grain (distinct from Watercolor's static paper grain), dark vignette. Every block now lands on a real post-FX pipeline regardless of which mood slot its epoch hash picks.
+- **2026-04-28** — Neon shader shipped (M2 phase 2, mood 4 of 5). Saturation boost, single-pass bloom approximation (8-direction sample), hue-tinted edge highlight on brightness gradients.
+- **2026-04-28** — Watercolor shader shipped (M2 phase 2, mood 3 of 5). Low-pass blur, per-channel colour bleed, position-keyed paper grain.
+- **2026-04-27** — Inscription text made palette-aware: drops the hard-coded `#1a3a8a` for hue 215° + saturation 0.55 with lightness contrast-clamped against the epoch background. Keeps the blue-inscription identity but stays readable across every biome.
+- **2026-04-27** — Shader-mood selection bug fixed: visual derivation now routes through the central `Rng` to get 32 entropy-uniform bytes from the hash. Reading raw block hashes was pinning every block to mood 0 (CRT) because Bitcoin's proof-of-work property guarantees leading-zero bytes. Added a regression test that asserts mood distribution across many synthetic hashes covers ≥ 4 of 5 moods. `mapping-rules.md` §1 now spells out the entropy step.
+- **2026-04-27** — Glitch shader shipped (M2 phase 2, mood 2 of 5). Chromatic aberration plus time-driven horizontal pixel-shift bands; intensity drives both effects.
 - **2026-04-27** — M2 phase 1 shipped: `src/game/visuals/` derives `EpochVisuals` and `BlockVisuals` from the byte allocation in `mapping-rules.md` §1e (palette anchors, particle hue/sat shift, fog/particle density, ambient tone + intensity, shader mood + intensity). Walls and enemies tint via the palette; grid + arena boundary use shifted shades; fog renders as a single overlay; player stays color-stable. CRT post-FX pipeline is wired end-to-end (registered on the renderer once `READY` fires; attached to the camera only when the epoch's chosen mood is `crt`). Particle rendering plus the other 4 shaders + time-of-day + era filter are M2 phase 2.
 - **2026-04-27** — Block inscriptions (§12): floor inscriptions stack up to 5 deduped, printable ASCII lines pulled from the coinbase scriptsig (priority) plus OP_RETURNs of the first 25 txs, joined with newlines. Per-line cap 110 chars; render in dark blue at depth `-5`. Cache stamped with `inscriptionParserVersion` so future parser bumps invalidate stale entries automatically.
 - **2026-04-26** — Boot screen no longer auto-starts: block loads in the background and the player clicks **START** (or presses Enter / Space) to enter the arena.

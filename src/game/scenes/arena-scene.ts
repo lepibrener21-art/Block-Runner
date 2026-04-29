@@ -15,10 +15,14 @@ import { generateLevel } from '../level/generator.ts';
 import type { Level, WaveSpec } from '../level/types.ts';
 import { WaveManager } from '../systems/wave-manager.ts';
 import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
+import { computeTodTint, timeOfDayFromTimestamp } from '../visuals/time-of-day.ts';
 import { CRTPipeline } from '../visuals/shaders/crt.ts';
+import { EraPipeline } from '../visuals/shaders/era.ts';
 import { GlitchPipeline } from '../visuals/shaders/glitch.ts';
 import { NeonPipeline } from '../visuals/shaders/neon.ts';
+import { VintagePipeline } from '../visuals/shaders/vintage.ts';
 import { WatercolorPipeline } from '../visuals/shaders/watercolor.ts';
+import { eraIntensity } from '../visuals/era.ts';
 import { hslToInt, shiftHsl, type BlockVisuals } from '../visuals/types.ts';
 
 export interface ArenaSceneData {
@@ -67,6 +71,8 @@ export class ArenaScene extends Phaser.Scene {
     this.drawArenaBackground();
     this.drawFog();
     this.drawInscription();
+    this.drawParticles();
+    this.drawTimeOfDay();
     this.applyShader();
 
     const wallFill = hslToInt(this.visuals.palette.primary);
@@ -155,35 +161,125 @@ export class ArenaScene extends Phaser.Scene {
     fog.setDepth(50);
   }
 
+  private static readonly PARTICLE_TEXTURE_KEY = 'particle-dot';
+
+  private registerParticleTexture(): void {
+    if (this.textures.exists(ArenaScene.PARTICLE_TEXTURE_KEY)) return;
+    const size = 6;
+    const cx = size / 2;
+    const g = this.add.graphics();
+    g.fillStyle(0xffffff, 0.4);
+    g.fillCircle(cx, cx, cx);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(cx, cx, cx * 0.45);
+    g.generateTexture(ArenaScene.PARTICLE_TEXTURE_KEY, size, size);
+    g.destroy();
+  }
+
+  private drawParticles(): void {
+    const density = this.visuals.epoch.particleDensity;
+    if (density < 0.05) return;
+
+    this.registerParticleTexture();
+
+    const target = Math.round(8 + density * 72);
+    const lifespanAvgMs = 6000;
+    const frequency = Math.max(50, Math.round(lifespanAvgMs / target));
+    const tint = hslToInt(this.visuals.palette.particle);
+
+    const emitter = this.add.particles(0, 0, ArenaScene.PARTICLE_TEXTURE_KEY, {
+      x: { min: 0, max: ARENA_W_PX },
+      y: { min: 0, max: ARENA_H_PX },
+      speed: { min: 4, max: 14 },
+      angle: { min: 0, max: 360 },
+      lifespan: { min: 4000, max: 8000 },
+      scale: { min: 0.5, max: 1.1 },
+      tint,
+      alpha: {
+        onEmit: (): number => 0,
+        onUpdate: (_p, _k, t): number => 0.4 * Math.sin(t * Math.PI),
+      },
+      frequency,
+      quantity: 1,
+    });
+    emitter.setDepth(60);
+  }
+
+  private drawTimeOfDay(): void {
+    const tod = timeOfDayFromTimestamp(this.block.timestamp);
+    const tint = computeTodTint(tod);
+    if (tint.alpha < 0.02) return;
+    const overlay = this.add.rectangle(
+      ARENA_W_PX / 2,
+      ARENA_H_PX / 2,
+      ARENA_W_PX,
+      ARENA_H_PX,
+      hslToInt(tint.color),
+      tint.alpha,
+    );
+    overlay.setDepth(70);
+  }
+
   private applyShader(): void {
-    const intensity = this.visuals.epoch.shaderIntensity;
+    const moodIntensity = this.visuals.epoch.shaderIntensity;
+    const moodClass = this.moodPipelineClass();
+    const eraIntens = eraIntensity(this.block.timestamp);
+    const wantEra = eraIntens > 0.01;
+
+    type PipelineCtor =
+      | typeof CRTPipeline
+      | typeof GlitchPipeline
+      | typeof WatercolorPipeline
+      | typeof NeonPipeline
+      | typeof VintagePipeline
+      | typeof EraPipeline;
+
+    const classes: PipelineCtor[] = [];
+    if (moodClass) classes.push(moodClass);
+    if (wantEra) classes.push(EraPipeline);
+
+    if (classes.length === 0) return;
+
+    this.cameras.main.setPostPipeline(classes);
+
+    if (moodClass) {
+      const pipe = this.cameras.main.getPostPipeline(moodClass);
+      if (
+        pipe instanceof CRTPipeline ||
+        pipe instanceof GlitchPipeline ||
+        pipe instanceof WatercolorPipeline ||
+        pipe instanceof NeonPipeline ||
+        pipe instanceof VintagePipeline
+      ) {
+        pipe.setIntensity(moodIntensity);
+      }
+    }
+    if (wantEra) {
+      const pipe = this.cameras.main.getPostPipeline(EraPipeline);
+      if (pipe instanceof EraPipeline) pipe.setIntensity(eraIntens);
+    }
+  }
+
+  private moodPipelineClass():
+    | typeof CRTPipeline
+    | typeof GlitchPipeline
+    | typeof WatercolorPipeline
+    | typeof NeonPipeline
+    | typeof VintagePipeline
+    | null {
     switch (this.visuals.epoch.shader) {
-      case 'crt': {
-        this.cameras.main.setPostPipeline(CRTPipeline);
-        const pipe = this.cameras.main.getPostPipeline(CRTPipeline);
-        if (pipe instanceof CRTPipeline) pipe.setIntensity(intensity);
-        return;
-      }
-      case 'glitch': {
-        this.cameras.main.setPostPipeline(GlitchPipeline);
-        const pipe = this.cameras.main.getPostPipeline(GlitchPipeline);
-        if (pipe instanceof GlitchPipeline) pipe.setIntensity(intensity);
-        return;
-      }
-      case 'watercolor': {
-        this.cameras.main.setPostPipeline(WatercolorPipeline);
-        const pipe = this.cameras.main.getPostPipeline(WatercolorPipeline);
-        if (pipe instanceof WatercolorPipeline) pipe.setIntensity(intensity);
-        return;
-      }
-      case 'neon': {
-        this.cameras.main.setPostPipeline(NeonPipeline);
-        const pipe = this.cameras.main.getPostPipeline(NeonPipeline);
-        if (pipe instanceof NeonPipeline) pipe.setIntensity(intensity);
-        return;
-      }
+      case 'crt':
+        return CRTPipeline;
+      case 'glitch':
+        return GlitchPipeline;
+      case 'watercolor':
+        return WatercolorPipeline;
+      case 'neon':
+        return NeonPipeline;
+      case 'vintage':
+        return VintagePipeline;
       default:
-        return;
+        return null;
     }
   }
 
@@ -192,9 +288,9 @@ export class ArenaScene extends Phaser.Scene {
     if (!text) return;
 
     const bg = this.visuals.palette.background;
-    const lightness = Math.min(0.7, Math.max(0.4, 0.5 + (0.2 - bg.l) * 1.5));
-    const fillHex = `#${hslToInt({ h: 215, s: 0.55, l: lightness }).toString(16).padStart(6, '0')}`;
-    const strokeHex = `#${hslToInt({ h: 215, s: 0.5, l: Math.max(0, lightness - 0.25) }).toString(16).padStart(6, '0')}`;
+    const lightness = Math.min(0.78, Math.max(0.5, 0.55 + (0.2 - bg.l) * 1.6));
+    const fillHex = `#${hslToInt({ h: 215, s: 0.6, l: lightness }).toString(16).padStart(6, '0')}`;
+    const strokeHex = `#${hslToInt({ h: 215, s: 0.55, l: Math.max(0, lightness - 0.3) }).toString(16).padStart(6, '0')}`;
 
     this.add
       .text(ARENA_W_PX / 2, ARENA_H_PX / 2, text, {
@@ -203,11 +299,11 @@ export class ArenaScene extends Phaser.Scene {
         color: fillHex,
         align: 'center',
         stroke: strokeHex,
-        strokeThickness: 1,
+        strokeThickness: 2,
         wordWrap: { width: ARENA_W_PX - 80, useAdvancedWrap: true },
       })
       .setOrigin(0.5)
-      .setAlpha(0.55)
+      .setAlpha(0.78)
       .setDepth(-5);
   }
 

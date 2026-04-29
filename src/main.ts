@@ -4,8 +4,10 @@ import { ArenaScene } from './game/scenes/arena-scene.ts';
 import { BootScene } from './game/scenes/boot-scene.ts';
 import { UIScene } from './game/scenes/ui-scene.ts';
 import { CRTPipeline, CRT_PIPELINE_KEY } from './game/visuals/shaders/crt.ts';
+import { EraPipeline, ERA_PIPELINE_KEY } from './game/visuals/shaders/era.ts';
 import { GlitchPipeline, GLITCH_PIPELINE_KEY } from './game/visuals/shaders/glitch.ts';
 import { NeonPipeline, NEON_PIPELINE_KEY } from './game/visuals/shaders/neon.ts';
+import { VintagePipeline, VINTAGE_PIPELINE_KEY } from './game/visuals/shaders/vintage.ts';
 import { WatercolorPipeline, WATERCOLOR_PIPELINE_KEY } from './game/visuals/shaders/watercolor.ts';
 
 const game = new Phaser.Game({
@@ -38,5 +40,7 @@ game.events.once(Phaser.Core.Events.READY, () => {
     game.renderer.pipelines.addPostPipeline(GLITCH_PIPELINE_KEY, GlitchPipeline);
     game.renderer.pipelines.addPostPipeline(WATERCOLOR_PIPELINE_KEY, WatercolorPipeline);
     game.renderer.pipelines.addPostPipeline(NEON_PIPELINE_KEY, NeonPipeline);
+    game.renderer.pipelines.addPostPipeline(VINTAGE_PIPELINE_KEY, VintagePipeline);
+    game.renderer.pipelines.addPostPipeline(ERA_PIPELINE_KEY, EraPipeline);
   }
 });
