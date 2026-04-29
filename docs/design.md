@@ -236,11 +236,11 @@ M1 was the make-or-break milestone; the core loop reads as fun on a single block
 |---|---|---|---|---|
 | 1 | CRT | scanlines + bloom + slight barrel distortion | scanline opacity 0.2–0.6 | ✅ shipped (M2 phase 1) |
 | 2 | Glitch | chromatic aberration + occasional pixel-shift bands | aberration 0–4 px, band frequency 0–0.3 | ✅ shipped (M2 phase 2) |
-| 3 | Watercolor | low-pass blur + color bleeding + paper grain | blur 0–2 px, bleed 0–0.5 | ✅ shipped (M2 phase 2) |
-| 4 | Neon | bloom + saturation boost + bright edge outline | bloom 0–1.0, saturation 1.0–1.6 | M2 phase 2 |
+| 3 | Watercolor | low-pass blur + color bleeding + paper grain + mild desaturation | blur 1–4 px, bleed 0.4–1.0, grain alpha 0.06–0.16 | ✅ shipped (M2 phase 2) |
+| 4 | Neon | two-ring bloom + saturation boost + bright edge outline + vignette | saturation 1.15–1.80, bloom 0.4–1.0, vignette 0.0–0.45 | ✅ shipped (M2 phase 2) |
 | 5 | Vintage | sepia tint + film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 | M2 phase 2 |
 
-Intensity comes from byte 1 of the epoch hash, mapped into each mood's specific range. While phase 2 shaders are pending, blocks whose epoch picks an unshipped mood render with no post-FX overlay (palette + atmosphere still apply normally).
+Intensity comes from byte 1 of the entropy-uniform bytes derived from the epoch hash, mapped into each mood's specific range. Each shader floors its effective intensity at ~0.4 internally (`mix(0.4, 1.0, byteIntensity)`) so even a low-byte epoch shows a clear effect, and the chosen mood doesn't fade to "no shader at all". While phase 2 shaders are pending, blocks whose epoch picks an unshipped mood render with no post-FX overlay (palette + atmosphere still apply normally).
 
 ---
 

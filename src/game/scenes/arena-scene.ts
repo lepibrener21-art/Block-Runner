@@ -17,6 +17,7 @@ import { WaveManager } from '../systems/wave-manager.ts';
 import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
 import { CRTPipeline } from '../visuals/shaders/crt.ts';
 import { GlitchPipeline } from '../visuals/shaders/glitch.ts';
+import { NeonPipeline } from '../visuals/shaders/neon.ts';
 import { WatercolorPipeline } from '../visuals/shaders/watercolor.ts';
 import { hslToInt, shiftHsl, type BlockVisuals } from '../visuals/types.ts';
 
@@ -175,6 +176,12 @@ export class ArenaScene extends Phaser.Scene {
         if (pipe instanceof WatercolorPipeline) pipe.setIntensity(intensity);
         return;
       }
+      case 'neon': {
+        this.cameras.main.setPostPipeline(NeonPipeline);
+        const pipe = this.cameras.main.getPostPipeline(NeonPipeline);
+        if (pipe instanceof NeonPipeline) pipe.setIntensity(intensity);
+        return;
+      }
       default:
         return;
     }
@@ -183,16 +190,24 @@ export class ArenaScene extends Phaser.Scene {
   private drawInscription(): void {
     const text = this.block.inscription;
     if (!text) return;
+
+    const bg = this.visuals.palette.background;
+    const lightness = Math.min(0.7, Math.max(0.4, 0.5 + (0.2 - bg.l) * 1.5));
+    const fillHex = `#${hslToInt({ h: 215, s: 0.55, l: lightness }).toString(16).padStart(6, '0')}`;
+    const strokeHex = `#${hslToInt({ h: 215, s: 0.5, l: Math.max(0, lightness - 0.25) }).toString(16).padStart(6, '0')}`;
+
     this.add
       .text(ARENA_W_PX / 2, ARENA_H_PX / 2, text, {
         fontFamily: 'monospace',
         fontSize: '10px',
-        color: '#1a3a8a',
+        color: fillHex,
         align: 'center',
+        stroke: strokeHex,
+        strokeThickness: 1,
         wordWrap: { width: ARENA_W_PX - 80, useAdvancedWrap: true },
       })
       .setOrigin(0.5)
-      .setAlpha(0.85)
+      .setAlpha(0.55)
       .setDepth(-5);
   }
 

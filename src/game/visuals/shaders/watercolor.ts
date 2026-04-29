@@ -17,31 +17,41 @@ void main() {
   vec2 uv = outTexCoord;
   vec2 px = 1.0 / uResolution;
 
-  // Soft low-pass blur, radius up to 2 px at full intensity.
-  float r = 2.0 * uIntensity;
+  // Per-mood intensity is floored so low-byte epochs still read as
+  // watercolour. uEffect ranges 0.4 .. 1.0.
+  float uEffect = mix(0.4, 1.0, uIntensity);
+
+  // Low-pass blur, radius 1 -> 4 px across the floored intensity.
+  float r = 1.0 + 3.0 * uEffect;
   vec3 sum = vec3(0.0);
   float total = 0.0;
-  for (int x = -1; x <= 1; x++) {
-    for (int y = -1; y <= 1; y++) {
+  for (int x = -2; x <= 2; x++) {
+    for (int y = -2; y <= 2; y++) {
       vec2 off = vec2(float(x), float(y)) * px * r;
-      float w = 1.0 - 0.3 * length(vec2(float(x), float(y)));
+      float w = 1.0 - 0.18 * length(vec2(float(x), float(y)));
       sum += texture2D(uMainSampler, uv + off).rgb * w;
       total += w;
     }
   }
   vec3 base = sum / total;
 
-  // Color bleed -- channels drift in different directions like wet pigment.
-  float bleed = 0.5 * uIntensity;
-  float br = texture2D(uMainSampler, uv + px * vec2(2.0, 1.0) * bleed).r;
-  float bg = texture2D(uMainSampler, uv + px * vec2(-1.0, 0.5) * bleed).g;
-  float bb = texture2D(uMainSampler, uv + px * vec2(1.0, -1.5) * bleed).b;
+  // Mild overall desaturation -- watercolour pigments aren't punchy.
+  float lum = dot(base, vec3(0.299, 0.587, 0.114));
+  base = mix(base, vec3(lum), 0.2);
+
+  // Strong colour bleed -- each channel drifts in its own direction.
+  float bleed = 0.4 + 0.7 * uEffect;
+  float br = texture2D(uMainSampler, uv + px * vec2(3.0, 1.5) * bleed).r;
+  float bg = texture2D(uMainSampler, uv + px * vec2(-1.5, 0.8) * bleed).g;
+  float bb = texture2D(uMainSampler, uv + px * vec2(1.5, -2.5) * bleed).b;
   vec3 bled = vec3(br, bg, bb);
 
-  vec3 color = mix(base, bled, 0.4 * uIntensity);
+  vec3 color = mix(base, bled, 0.35 + 0.3 * uEffect);
 
-  // Static paper grain -- fixed by pixel position, not time, so it reads as paper texture.
-  float grain = (hash21(floor(uv * uResolution)) - 0.5) * 0.10 * uIntensity;
+  // Paper grain -- always a baseline alpha so the page texture is
+  // present even at minimum intensity.
+  float grainAmp = 0.06 + 0.10 * uEffect;
+  float grain = (hash21(floor(uv * uResolution)) - 0.5) * grainAmp;
   color += grain;
 
   gl_FragColor = vec4(color, 1.0);
