@@ -68,6 +68,7 @@ export class ArenaScene extends Phaser.Scene {
     this.drawArenaBackground();
     this.drawFog();
     this.drawInscription();
+    this.drawParticles();
     this.applyShader();
 
     const wallFill = hslToInt(this.visuals.palette.primary);
@@ -154,6 +155,50 @@ export class ArenaScene extends Phaser.Scene {
     const alpha = 0.05 + density * 0.18;
     const fog = this.add.rectangle(ARENA_W_PX / 2, ARENA_H_PX / 2, ARENA_W_PX, ARENA_H_PX, color, alpha);
     fog.setDepth(50);
+  }
+
+  private static readonly PARTICLE_TEXTURE_KEY = 'particle-dot';
+
+  private registerParticleTexture(): void {
+    if (this.textures.exists(ArenaScene.PARTICLE_TEXTURE_KEY)) return;
+    const size = 6;
+    const cx = size / 2;
+    const g = this.add.graphics();
+    g.fillStyle(0xffffff, 0.4);
+    g.fillCircle(cx, cx, cx);
+    g.fillStyle(0xffffff, 1);
+    g.fillCircle(cx, cx, cx * 0.45);
+    g.generateTexture(ArenaScene.PARTICLE_TEXTURE_KEY, size, size);
+    g.destroy();
+  }
+
+  private drawParticles(): void {
+    const density = this.visuals.epoch.particleDensity;
+    if (density < 0.05) return;
+
+    this.registerParticleTexture();
+
+    const target = Math.round(8 + density * 72);
+    const lifespanAvgMs = 6000;
+    const frequency = Math.max(50, Math.round(lifespanAvgMs / target));
+    const tint = hslToInt(this.visuals.palette.particle);
+
+    const emitter = this.add.particles(0, 0, ArenaScene.PARTICLE_TEXTURE_KEY, {
+      x: { min: 0, max: ARENA_W_PX },
+      y: { min: 0, max: ARENA_H_PX },
+      speed: { min: 4, max: 14 },
+      angle: { min: 0, max: 360 },
+      lifespan: { min: 4000, max: 8000 },
+      scale: { min: 0.5, max: 1.1 },
+      tint,
+      alpha: {
+        onEmit: (): number => 0,
+        onUpdate: (_p, _k, t): number => 0.4 * Math.sin(t * Math.PI),
+      },
+      frequency,
+      quantity: 1,
+    });
+    emitter.setDepth(60);
   }
 
   private applyShader(): void {
