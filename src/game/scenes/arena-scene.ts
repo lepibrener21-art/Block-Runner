@@ -17,10 +17,12 @@ import { WaveManager } from '../systems/wave-manager.ts';
 import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
 import { computeTodTint, timeOfDayFromTimestamp } from '../visuals/time-of-day.ts';
 import { CRTPipeline } from '../visuals/shaders/crt.ts';
+import { EraPipeline } from '../visuals/shaders/era.ts';
 import { GlitchPipeline } from '../visuals/shaders/glitch.ts';
 import { NeonPipeline } from '../visuals/shaders/neon.ts';
 import { VintagePipeline } from '../visuals/shaders/vintage.ts';
 import { WatercolorPipeline } from '../visuals/shaders/watercolor.ts';
+import { eraIntensity } from '../visuals/era.ts';
 import { hslToInt, shiftHsl, type BlockVisuals } from '../visuals/types.ts';
 
 export interface ArenaSceneData {
@@ -219,40 +221,65 @@ export class ArenaScene extends Phaser.Scene {
   }
 
   private applyShader(): void {
-    const intensity = this.visuals.epoch.shaderIntensity;
+    const moodIntensity = this.visuals.epoch.shaderIntensity;
+    const moodClass = this.moodPipelineClass();
+    const eraIntens = eraIntensity(this.block.timestamp);
+    const wantEra = eraIntens > 0.01;
+
+    type PipelineCtor =
+      | typeof CRTPipeline
+      | typeof GlitchPipeline
+      | typeof WatercolorPipeline
+      | typeof NeonPipeline
+      | typeof VintagePipeline
+      | typeof EraPipeline;
+
+    const classes: PipelineCtor[] = [];
+    if (moodClass) classes.push(moodClass);
+    if (wantEra) classes.push(EraPipeline);
+
+    if (classes.length === 0) return;
+
+    this.cameras.main.setPostPipeline(classes);
+
+    if (moodClass) {
+      const pipe = this.cameras.main.getPostPipeline(moodClass);
+      if (
+        pipe instanceof CRTPipeline ||
+        pipe instanceof GlitchPipeline ||
+        pipe instanceof WatercolorPipeline ||
+        pipe instanceof NeonPipeline ||
+        pipe instanceof VintagePipeline
+      ) {
+        pipe.setIntensity(moodIntensity);
+      }
+    }
+    if (wantEra) {
+      const pipe = this.cameras.main.getPostPipeline(EraPipeline);
+      if (pipe instanceof EraPipeline) pipe.setIntensity(eraIntens);
+    }
+  }
+
+  private moodPipelineClass():
+    | typeof CRTPipeline
+    | typeof GlitchPipeline
+    | typeof WatercolorPipeline
+    | typeof NeonPipeline
+    | typeof VintagePipeline
+    | null {
     switch (this.visuals.epoch.shader) {
-      case 'crt': {
-        this.cameras.main.setPostPipeline(CRTPipeline);
-        const pipe = this.cameras.main.getPostPipeline(CRTPipeline);
-        if (pipe instanceof CRTPipeline) pipe.setIntensity(intensity);
-        return;
-      }
-      case 'glitch': {
-        this.cameras.main.setPostPipeline(GlitchPipeline);
-        const pipe = this.cameras.main.getPostPipeline(GlitchPipeline);
-        if (pipe instanceof GlitchPipeline) pipe.setIntensity(intensity);
-        return;
-      }
-      case 'watercolor': {
-        this.cameras.main.setPostPipeline(WatercolorPipeline);
-        const pipe = this.cameras.main.getPostPipeline(WatercolorPipeline);
-        if (pipe instanceof WatercolorPipeline) pipe.setIntensity(intensity);
-        return;
-      }
-      case 'neon': {
-        this.cameras.main.setPostPipeline(NeonPipeline);
-        const pipe = this.cameras.main.getPostPipeline(NeonPipeline);
-        if (pipe instanceof NeonPipeline) pipe.setIntensity(intensity);
-        return;
-      }
-      case 'vintage': {
-        this.cameras.main.setPostPipeline(VintagePipeline);
-        const pipe = this.cameras.main.getPostPipeline(VintagePipeline);
-        if (pipe instanceof VintagePipeline) pipe.setIntensity(intensity);
-        return;
-      }
+      case 'crt':
+        return CRTPipeline;
+      case 'glitch':
+        return GlitchPipeline;
+      case 'watercolor':
+        return WatercolorPipeline;
+      case 'neon':
+        return NeonPipeline;
+      case 'vintage':
+        return VintagePipeline;
       default:
-        return;
+        return null;
     }
   }
 

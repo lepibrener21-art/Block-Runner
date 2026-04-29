@@ -122,7 +122,9 @@ Specific tuning numbers (the constants in the formulas) will be revisited in pla
 - Time-of-day **modulates** the epoch's ambient light; it does not replace it. Each axis adds independent flavor, none overrides the others.
 - Era intensity is a **continuous fade** based on years since genesis (no abrupt jumps between adjacent blocks).
 
-**Shipped (M2 phase 2):** time-of-day. Implementation interpolates between four anchor stops over the day (midnight 220° / s 0.55 / l 0.15 / α 0.35 → sunrise 25° / s 0.65 / l 0.50 / α 0.22 → noon 60° / s 0.15 / l 0.90 / α 0.06 → sunset 12° / s 0.65 / l 0.45 / α 0.22 → wraps back to midnight). Renders as a screen-tint rectangle at depth 70, above particles (60), below the HUD camera, on top of which the active mood shader runs. Era filter is the only piece of §4 still pending.
+**Shipped (M2 phase 2):**
+- **Time-of-day:** interpolates between four anchor stops over the day (midnight 220° / s 0.55 / l 0.15 / α 0.35 → sunrise 25° / s 0.65 / l 0.50 / α 0.22 → noon 60° / s 0.15 / l 0.90 / α 0.06 → sunset 12° / s 0.65 / l 0.45 / α 0.22 → wraps back to midnight). Renders as a screen-tint rectangle at depth 70, above particles (60), below the HUD camera, on top of which the active mood shader runs.
+- **Era post-process:** continuous linear fade — `intensity = clamp(0, 1, 1 − years_since_genesis / 17)`, so genesis = 1.0, 2017.5 ≈ 0.5, 2026+ = 0. Implemented as a second post-FX pipeline on the camera, run *after* the active mood shader, so the layer order is epoch base → time-of-day overlay → mood shader → era filter. The era pipeline applies a cream-toned wash on luminance, mild desaturation, animated film grain, faint horizontal scanlines, and a soft vignette — each effect scaled by `intensity` so modern blocks are untouched and old blocks read clearly aged.
 
 **Open sub-questions:** none.
 
