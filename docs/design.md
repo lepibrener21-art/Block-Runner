@@ -149,7 +149,7 @@ Tech:
 | M0 | Foundations | ✅ done | Scaffold; mempool.space client; IndexedDB cache; deterministic `Rng`; lint rules |
 | M1 | One block, one fight | ✅ done | Deterministic level from one hash; 1 weapon, 1 enemy. Prove the core loop is fun. |
 | M1.5 | Polish + early extras | ✅ done | Dedicated UI scene; pause / restart / next-block; START button; multi-line inscriptions on the floor (§12). Not in original plan — landed organically before M2. |
-| M2 | Aesthetics layer | 🚧 in progress | 5 shader moods, palette, atmosphere, time-of-day, era filter. **Phase 1 done:** epoch + per-block palette, walls/enemies/grid tinting, fog overlay, CRT shader pipeline. **Phase 2 pending:** glitch / watercolor / neon / vintage shaders, particle rendering, time-of-day modulator, era post-process fade. |
+| M2 | Aesthetics layer | 🚧 in progress | 5 shader moods, palette, atmosphere, time-of-day, era filter. **Phase 1 done:** epoch + per-block palette, walls/enemies/grid tinting, fog overlay, CRT shader pipeline. **Phase 2:** all 5 shaders shipped (CRT, Glitch, Watercolor, Neon, Vintage). Still pending: particle rendering, time-of-day modulator, era post-process fade. |
 | M3 | Full mapping | pending | Difficulty scaling; waves; loot biases; 5 categories; 4 enemy types with aggression tiers |
 | M4 | Run mode | pending | Multi-block runs, persistent state, buff screen, run summary, sats persistence |
 | M5 | Polish & launch | pending | Daily Challenge, completion tracking, unlocks, audio, tutorial, snapshot tests, deploy |
@@ -238,7 +238,7 @@ M1 was the make-or-break milestone; the core loop reads as fun on a single block
 | 2 | Glitch | chromatic aberration + occasional pixel-shift bands | aberration 0–4 px, band frequency 0–0.3 | ✅ shipped (M2 phase 2) |
 | 3 | Watercolor | low-pass blur + color bleeding + paper grain + mild desaturation | blur 1–4 px, bleed 0.4–1.0, grain alpha 0.06–0.16 | ✅ shipped (M2 phase 2) |
 | 4 | Neon | two-ring bloom + saturation boost + bright edge outline + vignette | saturation 1.15–1.80, bloom 0.4–1.0, vignette 0.0–0.45 | ✅ shipped (M2 phase 2) |
-| 5 | Vintage | sepia tint + film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 | M2 phase 2 |
+| 5 | Vintage | sepia tint + animated film grain + vignette | sepia 0–0.6, grain 0–0.4, vignette 0–0.5 | ✅ shipped (M2 phase 2) |
 
 Intensity comes from byte 1 of the entropy-uniform bytes derived from the epoch hash, mapped into each mood's specific range. Each shader floors its effective intensity at ~0.4 internally (`mix(0.4, 1.0, byteIntensity)`) so even a low-byte epoch shows a clear effect, and the chosen mood doesn't fade to "no shader at all". While phase 2 shaders are pending, blocks whose epoch picks an unshipped mood render with no post-FX overlay (palette + atmosphere still apply normally).
 

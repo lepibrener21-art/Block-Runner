@@ -18,6 +18,7 @@ import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
 import { CRTPipeline } from '../visuals/shaders/crt.ts';
 import { GlitchPipeline } from '../visuals/shaders/glitch.ts';
 import { NeonPipeline } from '../visuals/shaders/neon.ts';
+import { VintagePipeline } from '../visuals/shaders/vintage.ts';
 import { WatercolorPipeline } from '../visuals/shaders/watercolor.ts';
 import { hslToInt, shiftHsl, type BlockVisuals } from '../visuals/types.ts';
 
@@ -180,6 +181,12 @@ export class ArenaScene extends Phaser.Scene {
         this.cameras.main.setPostPipeline(NeonPipeline);
         const pipe = this.cameras.main.getPostPipeline(NeonPipeline);
         if (pipe instanceof NeonPipeline) pipe.setIntensity(intensity);
+        return;
+      }
+      case 'vintage': {
+        this.cameras.main.setPostPipeline(VintagePipeline);
+        const pipe = this.cameras.main.getPostPipeline(VintagePipeline);
+        if (pipe instanceof VintagePipeline) pipe.setIntensity(intensity);
         return;
       }
       default:
