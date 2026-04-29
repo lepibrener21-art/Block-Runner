@@ -192,9 +192,9 @@ export class ArenaScene extends Phaser.Scene {
     if (!text) return;
 
     const bg = this.visuals.palette.background;
-    const lightness = Math.min(0.7, Math.max(0.4, 0.5 + (0.2 - bg.l) * 1.5));
-    const fillHex = `#${hslToInt({ h: 215, s: 0.55, l: lightness }).toString(16).padStart(6, '0')}`;
-    const strokeHex = `#${hslToInt({ h: 215, s: 0.5, l: Math.max(0, lightness - 0.25) }).toString(16).padStart(6, '0')}`;
+    const lightness = Math.min(0.78, Math.max(0.5, 0.55 + (0.2 - bg.l) * 1.6));
+    const fillHex = `#${hslToInt({ h: 215, s: 0.6, l: lightness }).toString(16).padStart(6, '0')}`;
+    const strokeHex = `#${hslToInt({ h: 215, s: 0.55, l: Math.max(0, lightness - 0.3) }).toString(16).padStart(6, '0')}`;
 
     this.add
       .text(ARENA_W_PX / 2, ARENA_H_PX / 2, text, {
@@ -203,11 +203,11 @@ export class ArenaScene extends Phaser.Scene {
         color: fillHex,
         align: 'center',
         stroke: strokeHex,
-        strokeThickness: 1,
+        strokeThickness: 2,
         wordWrap: { width: ARENA_W_PX - 80, useAdvancedWrap: true },
       })
       .setOrigin(0.5)
-      .setAlpha(0.55)
+      .setAlpha(0.78)
       .setDepth(-5);
   }
 
