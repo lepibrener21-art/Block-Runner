@@ -15,6 +15,7 @@ import { generateLevel } from '../level/generator.ts';
 import type { Level, WaveSpec } from '../level/types.ts';
 import { WaveManager } from '../systems/wave-manager.ts';
 import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
+import { computeTodTint, timeOfDayFromTimestamp } from '../visuals/time-of-day.ts';
 import { CRTPipeline } from '../visuals/shaders/crt.ts';
 import { GlitchPipeline } from '../visuals/shaders/glitch.ts';
 import { NeonPipeline } from '../visuals/shaders/neon.ts';
@@ -69,6 +70,7 @@ export class ArenaScene extends Phaser.Scene {
     this.drawFog();
     this.drawInscription();
     this.drawParticles();
+    this.drawTimeOfDay();
     this.applyShader();
 
     const wallFill = hslToInt(this.visuals.palette.primary);
@@ -199,6 +201,21 @@ export class ArenaScene extends Phaser.Scene {
       quantity: 1,
     });
     emitter.setDepth(60);
+  }
+
+  private drawTimeOfDay(): void {
+    const tod = timeOfDayFromTimestamp(this.block.timestamp);
+    const tint = computeTodTint(tod);
+    if (tint.alpha < 0.02) return;
+    const overlay = this.add.rectangle(
+      ARENA_W_PX / 2,
+      ARENA_H_PX / 2,
+      ARENA_W_PX,
+      ARENA_H_PX,
+      hslToInt(tint.color),
+      tint.alpha,
+    );
+    overlay.setDepth(70);
   }
 
   private applyShader(): void {

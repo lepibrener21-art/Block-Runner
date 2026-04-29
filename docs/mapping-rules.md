@@ -122,6 +122,8 @@ Specific tuning numbers (the constants in the formulas) will be revisited in pla
 - Time-of-day **modulates** the epoch's ambient light; it does not replace it. Each axis adds independent flavor, none overrides the others.
 - Era intensity is a **continuous fade** based on years since genesis (no abrupt jumps between adjacent blocks).
 
+**Shipped (M2 phase 2):** time-of-day. Implementation interpolates between four anchor stops over the day (midnight 220° / s 0.55 / l 0.15 / α 0.35 → sunrise 25° / s 0.65 / l 0.50 / α 0.22 → noon 60° / s 0.15 / l 0.90 / α 0.06 → sunset 12° / s 0.65 / l 0.45 / α 0.22 → wraps back to midnight). Renders as a screen-tint rectangle at depth 70, above particles (60), below the HUD camera, on top of which the active mood shader runs. Era filter is the only piece of §4 still pending.
+
 **Open sub-questions:** none.
 
 ---

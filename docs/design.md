@@ -149,7 +149,7 @@ Tech:
 | M0 | Foundations | ✅ done | Scaffold; mempool.space client; IndexedDB cache; deterministic `Rng`; lint rules |
 | M1 | One block, one fight | ✅ done | Deterministic level from one hash; 1 weapon, 1 enemy. Prove the core loop is fun. |
 | M1.5 | Polish + early extras | ✅ done | Dedicated UI scene; pause / restart / next-block; START button; multi-line inscriptions on the floor (§12). Not in original plan — landed organically before M2. |
-| M2 | Aesthetics layer | 🚧 in progress | 5 shader moods, palette, atmosphere, time-of-day, era filter. **Phase 1 done:** epoch + per-block palette, walls/enemies/grid tinting, fog overlay, CRT shader pipeline. **Phase 2:** all 5 shaders shipped (CRT, Glitch, Watercolor, Neon, Vintage); particle rendering shipped. Still pending: time-of-day modulator, era post-process fade. |
+| M2 | Aesthetics layer | 🚧 in progress | 5 shader moods, palette, atmosphere, time-of-day, era filter. **Phase 1 done:** epoch + per-block palette, walls/enemies/grid tinting, fog overlay, CRT shader pipeline. **Phase 2:** all 5 shaders shipped (CRT, Glitch, Watercolor, Neon, Vintage); particle rendering shipped; time-of-day modulator shipped. Still pending: era post-process fade. |
 | M3 | Full mapping | pending | Difficulty scaling; waves; loot biases; 5 categories; 4 enemy types with aggression tiers |
 | M4 | Run mode | pending | Multi-block runs, persistent state, buff screen, run summary, sats persistence |
 | M5 | Polish & launch | pending | Daily Challenge, completion tracking, unlocks, audio, tutorial, snapshot tests, deploy |
