@@ -76,9 +76,22 @@ The hash is the main randomness source for everything visual.
 | Damage | 0.12  | 2.5×  | ~1.5× |
 | Speed | 0.025 | 1.4×  | ~1.10× |
 
-Caps land in the 5–8× / 2–3× / 1.3–1.5× ranges originally agreed in the design contract. The lower-half choice was made post-shipment when mid-chain felt too steep and tip-area blocks were unplayable solo before player upgrades land (loot in M3.3, weapons in M4). Aggression-tier behaviour unlocks (M3.2) remain pending.
+Caps land in the 5–8× / 2–3× / 1.3–1.5× ranges originally agreed in the design contract. The lower-half choice was made post-shipment when mid-chain felt too steep and tip-area blocks were unplayable solo before player upgrades land (loot in M3.3, weapons in M4).
+
+**Aggression-tier unlocks (M3.2):**
+
+| Tier | `log10(difficulty)` ≥ | Unlocked types |
+|---|---|---|
+| 0 | 0 (genesis) | chaser |
+| 1 | 4 (~block 100k era) | chaser, dasher |
+| 2 | 8 (~mid-2014) | chaser, dasher, **shooter** (Phase B) |
+| 3 | 12 (~2019+) | chaser, dasher, shooter, **orbiter** (Phase B) |
+
+Per-wave type selection is deterministic per `(block hash, tier)`: a labeled `Rng.fromHex('enemy-types:<blockHash>')` stream picks one of the unlocked types per spawn, uniform across the available set. Independent of the layout / wave-spawn streams.
 
 **Shipped (M3.1):** `src/game/difficulty.ts` derives `log10(difficulty)` directly from `block.bits` (compact target encoding) without ever materialising the huge integer target — `targetLog10 = log10(mantissa) + 8 × (exponent − 3) × log10(2)`, and `log10(difficulty) = log10(maxTarget) − targetLog10`. From there, `difficultyMultipliers(bits)` returns `{ hp, damage, speed }` capped per the table above. `Enemy.applyDifficulty(mults)` rounds HP and damage to integers and scales speed; `ArenaScene.spawnWave` computes the multiplier triple once per wave from `block.bits` and applies it to every enemy spawned in that wave.
+
+**Shipped (M3.2 phase A):** `src/game/enemy-spec.ts` exposes `aggressionTier(ld)`, `availableEnemyTypes(tier)`, and `pickEnemyTypes(blockHash, tier, count)`. `Enemy` now has an `enemyType` field and a unified `tick(time, targetX, targetY)` method that branches behaviour. **Chaser:** straight-line approach (existing). **Dasher:** walks at 55 % of normal speed; every 3 s captures the player's current direction and dashes for 0.4 s at 3.5 × speed, then resumes the slow walk — telegraphed and dodgeable. Two textures shipped (square chaser, triangle dasher). Shooter and orbiter behaviours plus an enemy-bullet subsystem land in Phase B.
 
 
 ---

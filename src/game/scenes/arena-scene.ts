@@ -2,7 +2,8 @@ import Phaser from 'phaser';
 import { getBlock, getEpochAnchor } from '../../data/blocks.ts';
 import type { BlockData } from '../../data/types.ts';
 import { ARENA_H_PX, ARENA_W_PX, CAMERA_ZOOM, TILE_SIZE } from '../constants.ts';
-import { difficultyMultipliers } from '../difficulty.ts';
+import { difficultyLog10FromBits, difficultyMultipliers } from '../difficulty.ts';
+import { aggressionTier, pickEnemyTypes } from '../enemy-spec.ts';
 import { Bullet } from '../entities/bullet.ts';
 import { Enemy } from '../entities/enemy.ts';
 import { Player } from '../entities/player.ts';
@@ -306,8 +307,11 @@ export class ArenaScene extends Phaser.Scene {
   private spawnWave(spec: WaveSpec, idx: number): void {
     const tint = hslToInt(this.visuals.palette.accent);
     const mults = difficultyMultipliers(this.block.bits);
-    for (const point of spec.spawns) {
-      const enemy = new Enemy(this, point.x, point.y);
+    const tier = aggressionTier(difficultyLog10FromBits(this.block.bits));
+    const types = pickEnemyTypes(this.block.hash, tier, spec.spawns.length);
+    for (let i = 0; i < spec.spawns.length; i++) {
+      const point = spec.spawns[i]!;
+      const enemy = new Enemy(this, point.x, point.y, types[i]!);
       enemy.waveIndex = idx;
       enemy.applyDifficulty(mults);
       enemy.setTint(tint);
@@ -348,7 +352,7 @@ export class ArenaScene extends Phaser.Scene {
     this.player.update(time);
     this.enemies.children.iterate((obj) => {
       const enemy = obj as Enemy;
-      if (enemy.active) enemy.chase(this.player.x, this.player.y);
+      if (enemy.active) enemy.tick(time, this.player.x, this.player.y);
       return true;
     });
     this.waveManager.update(time);
