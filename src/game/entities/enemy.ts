@@ -1,10 +1,13 @@
 import Phaser from 'phaser';
 import { ENEMY } from '../constants.ts';
+import type { DifficultyMultipliers } from '../difficulty.ts';
 
 const TEXTURE_KEY = 'enemy-texture';
 
 export class Enemy extends Phaser.Physics.Arcade.Sprite {
   hp: number = ENEMY.hp;
+  contactDamage: number = ENEMY.contactDamage;
+  speed: number = ENEMY.speed;
   waveIndex = -1;
 
   constructor(scene: Phaser.Scene, x: number, y: number) {
@@ -27,6 +30,12 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
     g.destroy();
   }
 
+  applyDifficulty(mults: DifficultyMultipliers): void {
+    this.hp = Math.max(1, Math.round(ENEMY.hp * mults.hp));
+    this.contactDamage = Math.max(1, Math.round(ENEMY.contactDamage * mults.damage));
+    this.speed = ENEMY.speed * mults.speed;
+  }
+
   takeDamage(dmg: number): boolean {
     this.hp -= dmg;
     if (this.hp <= 0) {
@@ -44,6 +53,6 @@ export class Enemy extends Phaser.Physics.Arcade.Sprite {
       this.setVelocity(0, 0);
       return;
     }
-    this.setVelocity((dx / len) * ENEMY.speed, (dy / len) * ENEMY.speed);
+    this.setVelocity((dx / len) * this.speed, (dy / len) * this.speed);
   }
 }
