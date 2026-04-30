@@ -1,8 +1,6 @@
 # Mapping Rules — Block Data → Level
 
-Detailed working doc for how Bitcoin block fields drive level generation. Companion to `design.md` §2.
-
-Each section follows the same shape: **decided** items at the top, **open** items below. Move bullets up as decisions are made.
+The byte-level spec for how Bitcoin block fields drive level generation. All rules below are decided; this doc is the active reference for anything that maps block data to mechanics. For project state and milestone progress, see [`design.md`](design.md). For closed decisions and history, see [`archive.md`](archive.md).
 
 ---
 
@@ -56,8 +54,6 @@ The hash is the main randomness source for everything visual.
 | 16–17 | Per-block palette tint shift | ≤10° hue, ≤10% saturation nudge from the epoch palette. |
 | 18–31 | _reserved_ | Headroom for downstream subsystems. |
 
-Section 1 closed. Move on to §2.
-
 ---
 
 ## 2. Difficulty / bits → enemy strength
@@ -84,7 +80,6 @@ Exact `k` values and aggression thresholds will be tuned in playtesting; the fra
 
 **Shipped (M3):** stat scaling. `src/game/difficulty.ts` derives `log10(difficulty)` directly from `block.bits` (compact target encoding) without ever materialising the huge integer target — `targetLog10 = log10(mantissa) + 8 × (exponent − 3) × log10(2)`, and `log10(difficulty) = log10(maxTarget) − targetLog10`. From there, `difficultyMultipliers(bits)` returns `{ hp, damage, speed }` capped at the design ceilings (8× / 3× / 1.5×) using the `k` values above. `Enemy.applyDifficulty(mults)` rounds HP and damage to integers and scales speed; `ArenaScene.spawnWave` computes the multiplier triple once per wave from `block.bits` and applies it to every enemy spawned in that wave. Aggression-tier behaviour unlocks remain pending — they belong with the M3 enemy-types pass.
 
-**Open sub-questions:** none.
 
 ---
 
@@ -108,7 +103,6 @@ Exact `k` values and aggression thresholds will be tuned in playtesting; the fra
 
 Specific tuning numbers (the constants in the formulas) will be revisited in playtesting.
 
-**Open sub-questions:** none.
 
 ---
 
@@ -128,7 +122,6 @@ Specific tuning numbers (the constants in the formulas) will be revisited in pla
 - **Time-of-day:** interpolates between four anchor stops over the day (midnight 220° / s 0.55 / l 0.15 / α 0.35 → sunrise 25° / s 0.65 / l 0.50 / α 0.22 → noon 60° / s 0.15 / l 0.90 / α 0.06 → sunset 12° / s 0.65 / l 0.45 / α 0.22 → wraps back to midnight). Renders as a screen-tint rectangle at depth 70, above particles (60), below the HUD camera, on top of which the active mood shader runs.
 - **Era post-process:** continuous linear fade — `intensity = clamp(0, 1, 1 − years_since_genesis / 17)`, so genesis = 1.0, 2017.5 ≈ 0.5, 2026+ = 0. Implemented as a second post-FX pipeline on the camera, run *after* the active mood shader, so the layer order is epoch base → time-of-day overlay → mood shader → era filter. The era pipeline applies a cream-toned wash on luminance, mild desaturation, animated film grain, faint horizontal scanlines, and a soft vignette — each effect scaled by `intensity` so modern blocks are untouched and old blocks read clearly aged.
 
-**Open sub-questions:** none.
 
 ---
 
@@ -151,7 +144,6 @@ Specific tuning numbers (the constants in the formulas) will be revisited in pla
 - per-block hash bytes 22–25 → position + per-drop roll
 - §5 nonce → table biases (which categories this block leans toward)
 
-**Open sub-questions:** none.
 
 ---
 
