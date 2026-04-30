@@ -5,12 +5,12 @@ const MAX_TARGET_EXPONENT = 0x1d;
 const MAX_TARGET_LOG10 =
   Math.log10(MAX_TARGET_MANTISSA) + 8 * (MAX_TARGET_EXPONENT - 3) * LOG10_2;
 
-const HP_K = 0.5;
-const HP_CAP = 8;
-const DMG_K = 0.15;
-const DMG_CAP = 3;
-const SPD_K = 0.035;
-const SPD_CAP = 1.5;
+const HP_K = 0.35;
+const HP_CAP = 6;
+const DMG_K = 0.12;
+const DMG_CAP = 2.5;
+const SPD_K = 0.025;
+const SPD_CAP = 1.4;
 
 export interface DifficultyMultipliers {
   hp: number;

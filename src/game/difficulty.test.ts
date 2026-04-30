@@ -35,23 +35,23 @@ describe('difficultyMultipliers', () => {
     expect(m.speed).toBeCloseTo(1, 5);
   });
 
-  it('lands inside the design ceilings for chain-tip-era difficulty', () => {
+  it('lands inside the tuned ceilings for chain-tip-era difficulty', () => {
     const m = difficultyMultipliers(0x17030c0e);
-    expect(m.hp).toBeGreaterThan(5);
-    expect(m.hp).toBeLessThanOrEqual(8);
+    expect(m.hp).toBeGreaterThan(4);
+    expect(m.hp).toBeLessThanOrEqual(6);
     expect(m.damage).toBeGreaterThan(2);
-    expect(m.damage).toBeLessThanOrEqual(3);
-    expect(m.speed).toBeGreaterThan(1.3);
-    expect(m.speed).toBeLessThanOrEqual(1.5);
+    expect(m.damage).toBeLessThanOrEqual(2.5);
+    expect(m.speed).toBeGreaterThan(1.25);
+    expect(m.speed).toBeLessThanOrEqual(1.4);
   });
 
-  it('caps each stat at its design ceiling for absurdly hard targets', () => {
+  it('caps each stat at its tuned ceiling for absurdly hard targets', () => {
     // Push log10(difficulty) up around 30, well past the chain tip.
     const fakeBits = 0x10000001;
     const m = difficultyMultipliers(fakeBits);
-    expect(m.hp).toBeLessThanOrEqual(8);
-    expect(m.damage).toBeLessThanOrEqual(3);
-    expect(m.speed).toBeLessThanOrEqual(1.5);
+    expect(m.hp).toBeLessThanOrEqual(6);
+    expect(m.damage).toBeLessThanOrEqual(2.5);
+    expect(m.speed).toBeLessThanOrEqual(1.4);
   });
 
   it('hp scales the most, speed the least, damage in between', () => {

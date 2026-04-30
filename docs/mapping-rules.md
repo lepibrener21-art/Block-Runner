@@ -68,17 +68,17 @@ The hash is the main randomness source for everything visual.
   - Aggression / behavior unlocks at discrete thresholds (e.g. dodging at one tier, ranged attacks at another).
 - **Separation of concerns:** difficulty drives **quality** (per-enemy strength). `tx_count` drives **quantity** (count + waves). No overlap.
 
-**Target ceiling at chain tip (~difficulty 10¹⁴):**
+**Tuned ceiling at chain tip (~difficulty 10¹⁴):**
 
-| Stat | Multiplier at tip | Implied `k` (with cap) |
-|---|---|---|
-| HP    | 5–8×    | ~0.5  (cap 8×)  |
-| Damage | 2–3×   | ~0.15 (cap 3×)  |
-| Speed | 1.3–1.5× | ~0.035 (cap 1.5×) |
+| Stat | `k` | Cap | Mid-chain feel (block ~100k, ld ≈ 4) |
+|---|---|---|---|
+| HP    | 0.35  | 6×    | ~2.4× |
+| Damage | 0.12  | 2.5×  | ~1.5× |
+| Speed | 0.025 | 1.4×  | ~1.10× |
 
-Exact `k` values and aggression thresholds will be tuned in playtesting; the framework above is the design contract.
+Caps land in the 5–8× / 2–3× / 1.3–1.5× ranges originally agreed in the design contract. The lower-half choice was made post-shipment when mid-chain felt too steep and tip-area blocks were unplayable solo before player upgrades land (loot in M3.3, weapons in M4). Aggression-tier behaviour unlocks (M3.2) remain pending.
 
-**Shipped (M3):** stat scaling. `src/game/difficulty.ts` derives `log10(difficulty)` directly from `block.bits` (compact target encoding) without ever materialising the huge integer target — `targetLog10 = log10(mantissa) + 8 × (exponent − 3) × log10(2)`, and `log10(difficulty) = log10(maxTarget) − targetLog10`. From there, `difficultyMultipliers(bits)` returns `{ hp, damage, speed }` capped at the design ceilings (8× / 3× / 1.5×) using the `k` values above. `Enemy.applyDifficulty(mults)` rounds HP and damage to integers and scales speed; `ArenaScene.spawnWave` computes the multiplier triple once per wave from `block.bits` and applies it to every enemy spawned in that wave. Aggression-tier behaviour unlocks remain pending — they belong with the M3 enemy-types pass.
+**Shipped (M3.1):** `src/game/difficulty.ts` derives `log10(difficulty)` directly from `block.bits` (compact target encoding) without ever materialising the huge integer target — `targetLog10 = log10(mantissa) + 8 × (exponent − 3) × log10(2)`, and `log10(difficulty) = log10(maxTarget) − targetLog10`. From there, `difficultyMultipliers(bits)` returns `{ hp, damage, speed }` capped per the table above. `Enemy.applyDifficulty(mults)` rounds HP and damage to integers and scales speed; `ArenaScene.spawnWave` computes the multiplier triple once per wave from `block.bits` and applies it to every enemy spawned in that wave.
 
 
 ---

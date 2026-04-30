@@ -24,7 +24,7 @@ Closed milestones (M0 foundations, M1 one-block-one-fight, M1.5 polish + early e
 
 ## Open questions / pending decisions
 
-- **Difficulty curve tuning** (apply in next commit): pull `k` values down (HP `0.5 → 0.35`, dmg `0.15 → 0.12`, spd `0.035 → 0.025`) and lower caps to **6× / 2.5× / 1.4×**. Mid-chain felt too steep; tip-area blocks unplayable solo. Still inside the design's stated 5–8× / 2–3× / 1.3–1.5× ranges.
+_None._
 
 ## Conventions
 
