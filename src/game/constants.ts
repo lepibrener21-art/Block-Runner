@@ -40,6 +40,13 @@ export const ENEMY = {
   color: 0xff6c6c,
 } as const;
 
+export const ENEMY_BULLET = {
+  speed: 280,
+  size: 5,
+  color: 0xff8d6c,
+  glowColor: 0xff5a3a,
+} as const;
+
 export const WALL = {
   color: 0x444a6a,
 } as const;

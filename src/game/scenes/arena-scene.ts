@@ -5,7 +5,8 @@ import { ARENA_H_PX, ARENA_W_PX, CAMERA_ZOOM, TILE_SIZE } from '../constants.ts'
 import { difficultyLog10FromBits, difficultyMultipliers } from '../difficulty.ts';
 import { aggressionTier, pickEnemyTypes } from '../enemy-spec.ts';
 import { Bullet } from '../entities/bullet.ts';
-import { Enemy } from '../entities/enemy.ts';
+import { Enemy, type EnemyFireFn } from '../entities/enemy.ts';
+import { EnemyBullet } from '../entities/enemy-bullet.ts';
 import { Player } from '../entities/player.ts';
 import { generateLevel } from '../level/generator.ts';
 import type { Level, WaveSpec } from '../level/types.ts';
@@ -36,6 +37,7 @@ export class ArenaScene extends Phaser.Scene {
   private player!: Player;
   private enemies!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
+  private enemyBullets!: Phaser.Physics.Arcade.Group;
   private walls!: Phaser.Physics.Arcade.StaticGroup;
   private waveManager!: WaveManager;
   private endKind?: EndKind;
@@ -85,6 +87,7 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.bullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
+    this.enemyBullets = this.physics.add.group({ classType: EnemyBullet, runChildUpdate: true });
     this.enemies = this.physics.add.group({ classType: Enemy });
 
     this.player = new Player(this, ARENA_W_PX / 2, ARENA_H_PX / 2, (x, y, dx, dy) => {
@@ -99,6 +102,9 @@ export class ArenaScene extends Phaser.Scene {
     this.physics.add.collider(this.bullets, this.walls, (bullet) => {
       (bullet as Bullet).destroy();
     });
+    this.physics.add.collider(this.enemyBullets, this.walls, (bullet) => {
+      (bullet as EnemyBullet).destroy();
+    });
     this.physics.add.overlap(this.bullets, this.enemies, (bulletObj, enemyObj) => {
       const bullet = bulletObj as Bullet;
       const enemy = enemyObj as Enemy;
@@ -107,6 +113,12 @@ export class ArenaScene extends Phaser.Scene {
       const killed = enemy.takeDamage(bullet.damage);
       bullet.destroy();
       if (killed) this.waveManager.enemyKilled(waveIdx, this.time.now);
+    });
+    this.physics.add.overlap(this.player, this.enemyBullets, (_p, bulletObj) => {
+      const bullet = bulletObj as EnemyBullet;
+      if (!bullet.active) return;
+      this.player.takeDamage(bullet.damage, this.time.now);
+      bullet.destroy();
     });
     this.physics.add.overlap(this.player, this.enemies, (_p, enemyObj) => {
       const enemy = enemyObj as Enemy;
@@ -309,9 +321,14 @@ export class ArenaScene extends Phaser.Scene {
     const mults = difficultyMultipliers(this.block.bits);
     const tier = aggressionTier(difficultyLog10FromBits(this.block.bits));
     const types = pickEnemyTypes(this.block.hash, tier, spec.spawns.length);
+    const fire: EnemyFireFn = (x, y, dx, dy, damage) => {
+      const bullet = new EnemyBullet(this, x, y, damage);
+      this.enemyBullets.add(bullet);
+      bullet.launch(dx, dy);
+    };
     for (let i = 0; i < spec.spawns.length; i++) {
       const point = spec.spawns[i]!;
-      const enemy = new Enemy(this, point.x, point.y, types[i]!);
+      const enemy = new Enemy(this, point.x, point.y, types[i]!, fire);
       enemy.waveIndex = idx;
       enemy.applyDifficulty(mults);
       enemy.setTint(tint);
