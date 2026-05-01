@@ -12,8 +12,8 @@ Top-down roguelike where every Bitcoin block is a deterministic, playable level.
 |---|---|---|
 | M3.1 | Difficulty scaling (`block.bits` → enemy HP/damage/speed log curves) | ✅ shipped — see `src/game/difficulty.ts` |
 | M3.2 | 4 enemy types + aggression tiers (gated by `log10(difficulty)` thresholds; per-wave selection from per-block hash bytes 26–29) | ✅ shipped — chaser + dasher (tiers 0–1) and shooter + orbiter (tiers 2–3) with the enemy-bullet subsystem |
-| M3.3 | Loot system + nonce biases (5 categories: health, sats, weapons, powerups, passives; drops on enemy death from per-block hash bytes 22–25; nonce drives per-block category bias) | ⏭ |
-| M3.4 | Doc sync + tuning pass | ⏭ |
+| M3.3 | Loot system + nonce biases (5 categories: health, sats, weapons, powerups, passives; drops at level start from per-block hash; nonce drives per-block category bias) | ✅ shipped — see `src/game/loot-spec.ts`, `src/game/entities/loot.ts` |
+| M3.4 | Doc sync + tuning pass | ⏭ next |
 
 ## After M3
 

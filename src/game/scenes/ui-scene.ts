@@ -7,6 +7,8 @@ export interface HudState {
   maxHp: number;
   wave: number;
   totalWaves: number;
+  sats: number;
+  buffMsRemaining: number;
 }
 
 export type EndKind = 'cleared' | 'died';
@@ -15,6 +17,8 @@ export class UIScene extends Phaser.Scene {
   private blockText!: Phaser.GameObjects.Text;
   private hpText!: Phaser.GameObjects.Text;
   private waveText!: Phaser.GameObjects.Text;
+  private satsText!: Phaser.GameObjects.Text;
+  private buffText!: Phaser.GameObjects.Text;
   private endTitle?: Phaser.GameObjects.Text;
   private endHint?: Phaser.GameObjects.Text;
   private loadingText?: Phaser.GameObjects.Text;
@@ -38,6 +42,8 @@ export class UIScene extends Phaser.Scene {
     this.blockText = this.add.text(12, 10, '', baseStyle);
     this.hpText = this.add.text(12, 32, '', baseStyle);
     this.waveText = this.add.text(12, 54, '', baseStyle);
+    this.satsText = this.add.text(12, 76, '', { ...baseStyle, color: '#ffd66c' });
+    this.buffText = this.add.text(12, 98, '', { ...baseStyle, color: '#c06cff' });
 
     const arena = this.scene.get('arena');
     const onState = (state: HudState): void => this.applyState(state);
@@ -130,6 +136,12 @@ export class UIScene extends Phaser.Scene {
     this.blockText.setText(`block ${state.blockHeight}`);
     this.hpText.setText(`hp ${state.hp}/${state.maxHp}`);
     this.waveText.setText(`wave ${state.wave}/${state.totalWaves}`);
+    this.satsText.setText(`sats ${state.sats}`);
+    if (state.buffMsRemaining > 0) {
+      this.buffText.setText(`+50% dmg · ${Math.ceil(state.buffMsRemaining / 1000)}s`);
+    } else {
+      this.buffText.setText('');
+    }
   }
 
   private showEnd(kind: EndKind): void {

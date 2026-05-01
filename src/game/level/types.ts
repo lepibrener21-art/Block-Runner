@@ -1,3 +1,5 @@
+import type { LootSlot } from '../loot-spec.ts';
+
 export interface Wall {
   x: number;
   y: number;
@@ -23,4 +25,5 @@ export interface Level {
   walls: Wall[];
   waves: WaveSpec[];
   totalEnemies: number;
+  lootSlots: LootSlot[];
 }

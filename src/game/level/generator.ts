@@ -9,6 +9,7 @@ import {
   WAVE,
   TILE_SIZE,
 } from '../constants.ts';
+import { generateLootSlots } from '../loot-spec.ts';
 import type { Level, SpawnEdge, SpawnPoint, WaveSpec, Wall } from './types.ts';
 
 const SPAWN_GUARD_TILES = 4;
@@ -105,11 +106,14 @@ export function generateLevel(block: BlockData): Level {
     return { spawns };
   });
 
+  const lootSlots = generateLootSlots(block.hash, block.nonce, block.txCount, walls);
+
   return {
     blockHeight: block.height,
     blockHash: block.hash,
     walls,
     waves,
     totalEnemies,
+    lootSlots,
   };
 }

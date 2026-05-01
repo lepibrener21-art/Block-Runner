@@ -7,9 +7,11 @@ import { aggressionTier, pickEnemyTypes } from '../enemy-spec.ts';
 import { Bullet } from '../entities/bullet.ts';
 import { Enemy, type EnemyFireFn } from '../entities/enemy.ts';
 import { EnemyBullet } from '../entities/enemy-bullet.ts';
+import { Loot } from '../entities/loot.ts';
 import { Player } from '../entities/player.ts';
 import { generateLevel } from '../level/generator.ts';
 import type { Level, WaveSpec } from '../level/types.ts';
+import type { LootCategory } from '../loot-spec.ts';
 import { WaveManager } from '../systems/wave-manager.ts';
 import { deriveBlockVisuals, deriveEpochVisuals } from '../visuals/derive.ts';
 import { computeTodTint, timeOfDayFromTimestamp } from '../visuals/time-of-day.ts';
@@ -38,6 +40,7 @@ export class ArenaScene extends Phaser.Scene {
   private enemies!: Phaser.Physics.Arcade.Group;
   private bullets!: Phaser.Physics.Arcade.Group;
   private enemyBullets!: Phaser.Physics.Arcade.Group;
+  private loots!: Phaser.Physics.Arcade.Group;
   private walls!: Phaser.Physics.Arcade.StaticGroup;
   private waveManager!: WaveManager;
   private endKind?: EndKind;
@@ -89,9 +92,10 @@ export class ArenaScene extends Phaser.Scene {
     this.bullets = this.physics.add.group({ classType: Bullet, runChildUpdate: true });
     this.enemyBullets = this.physics.add.group({ classType: EnemyBullet, runChildUpdate: true });
     this.enemies = this.physics.add.group({ classType: Enemy });
+    this.loots = this.physics.add.group({ classType: Loot });
 
-    this.player = new Player(this, ARENA_W_PX / 2, ARENA_H_PX / 2, (x, y, dx, dy) => {
-      const bullet = new Bullet(this, x, y);
+    this.player = new Player(this, ARENA_W_PX / 2, ARENA_H_PX / 2, (x, y, dx, dy, damage) => {
+      const bullet = new Bullet(this, x, y, damage);
       this.bullets.add(bullet);
       bullet.launch(dx, dy);
     });
@@ -104,6 +108,12 @@ export class ArenaScene extends Phaser.Scene {
     });
     this.physics.add.collider(this.enemyBullets, this.walls, (bullet) => {
       (bullet as EnemyBullet).destroy();
+    });
+    this.physics.add.overlap(this.player, this.loots, (_p, lootObj) => {
+      const loot = lootObj as Loot;
+      if (!loot.active) return;
+      this.applyLoot(loot.category);
+      loot.destroy();
     });
     this.physics.add.overlap(this.bullets, this.enemies, (bulletObj, enemyObj) => {
       const bullet = bulletObj as Bullet;
@@ -136,6 +146,8 @@ export class ArenaScene extends Phaser.Scene {
       this.nextKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.N);
     }
 
+    this.spawnLoot();
+
     this.events.emit('hud:reset');
     this.emitHudState(0);
     if (!this.scene.isActive('ui')) {
@@ -143,6 +155,33 @@ export class ArenaScene extends Phaser.Scene {
     }
 
     this.waveManager.start(this.time.now);
+  }
+
+  private spawnLoot(): void {
+    for (const slot of this.level.lootSlots) {
+      const loot = new Loot(this, slot.x, slot.y, slot.category);
+      this.loots.add(loot);
+    }
+  }
+
+  private applyLoot(category: LootCategory): void {
+    switch (category) {
+      case 'health':
+        this.player.heal(30);
+        return;
+      case 'sats':
+        this.player.grantSats(5);
+        return;
+      case 'weapon':
+        this.player.grantBonusDamage(5);
+        return;
+      case 'powerup':
+        this.player.applyDamageMultiplier(1.5, 10_000, this.time.now);
+        return;
+      case 'passive':
+        this.player.bumpMaxHp(10);
+        return;
+    }
   }
 
   private drawArenaBackground(): void {
@@ -345,6 +384,8 @@ export class ArenaScene extends Phaser.Scene {
       maxHp: this.player ? this.player.maxHp : 100,
       wave: waveIdx + 1,
       totalWaves: this.waveManager.totalWaves(),
+      sats: this.player ? this.player.sats : 0,
+      buffMsRemaining: this.player ? this.player.damageMultiplierRemainingMs(this.time.now) : 0,
     });
   }
 

@@ -157,6 +157,8 @@ Specific tuning numbers (the constants in the formulas) will be revisited in pla
 - per-block hash bytes 22–25 → position + per-drop roll
 - §5 nonce → table biases (which categories this block leans toward)
 
+**Shipped (M3.3):** `src/game/loot-spec.ts` exposes `lootCountFor(txCount)` (`clamp(2, 20, floor(sqrt(txCount) / 2))`), `deriveBiasWeights(nonce)` (per-category weight in `[0.5, 2.0]` from a labeled `Rng.fromHex('nonce-bias:<hex>')` stream), and `generateLootSlots(blockHash, nonce, txCount, walls)` which seeds positions and per-slot category rolls from `Rng.fromHex('loot:<blockHash>')`, rejecting positions that fall inside a wall (up to 16 attempts per slot before giving up). Slots are added to the `Level` and rendered at level start by the `Loot` entity (one of five category-specific tinted dots with a gentle pulse). Player overlap picks them up and applies the effect: **health** heals 30 HP, **sats** adds 5 to a per-run counter, **weapon** adds +5 permanent bonus bullet damage for the level, **powerup** applies a 1.5× damage multiplier for 10 s, **passive** bumps `maxHp` by 10 and refills. The `Player` exposes `computeBulletDamage()` so the Bullet picks up the bonuses + multiplier on each shot.
+
 
 ---
 

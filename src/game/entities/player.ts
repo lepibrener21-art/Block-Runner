@@ -4,7 +4,7 @@ import { PLAYER, WEAPON } from '../constants.ts';
 const TEXTURE_KEY = 'player-texture';
 
 export interface FireFn {
-  (originX: number, originY: number, dirX: number, dirY: number): void;
+  (originX: number, originY: number, dirX: number, dirY: number, damage: number): void;
 }
 
 interface InputKeys {
@@ -17,7 +17,12 @@ interface InputKeys {
 
 export class Player extends Phaser.Physics.Arcade.Sprite {
   hp: number = PLAYER.hp;
-  readonly maxHp: number = PLAYER.hp;
+  maxHp: number = PLAYER.hp;
+  sats = 0;
+
+  bonusBulletDamage = 0;
+  damageMultiplier = 1;
+  damageMultiplierUntil = 0;
 
   private hitCooldownUntil = 0;
   private dodgeCooldownUntil = 0;
@@ -125,11 +130,47 @@ export class Player extends Phaser.Physics.Arcade.Sprite {
       this.setVelocity(this.dodgeDirX * PLAYER.dodge.speed, this.dodgeDirY * PLAYER.dodge.speed);
     }
 
+    if (this.damageMultiplier !== 1 && time >= this.damageMultiplierUntil) {
+      this.damageMultiplier = 1;
+    }
+
     if (this.scene.input.activePointer.isDown && time >= this.fireCooldownUntil) {
       const aim = this.aimVector();
-      this.fire(this.x, this.y, aim.x, aim.y);
+      this.fire(this.x, this.y, aim.x, aim.y, this.computeBulletDamage());
       this.fireCooldownUntil = time + WEAPON.fireIntervalMs;
     }
+  }
+
+  computeBulletDamage(): number {
+    const base = WEAPON.bulletDamage + this.bonusBulletDamage;
+    return Math.max(1, Math.round(base * this.damageMultiplier));
+  }
+
+  heal(amount: number): void {
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+  }
+
+  bumpMaxHp(amount: number): void {
+    this.maxHp = Math.max(1, this.maxHp + amount);
+    this.hp = this.maxHp;
+  }
+
+  grantSats(amount: number): void {
+    this.sats += amount;
+  }
+
+  grantBonusDamage(amount: number): void {
+    this.bonusBulletDamage = Math.max(0, this.bonusBulletDamage + amount);
+  }
+
+  applyDamageMultiplier(multiplier: number, durationMs: number, time: number): void {
+    this.damageMultiplier = multiplier;
+    this.damageMultiplierUntil = time + durationMs;
+  }
+
+  damageMultiplierRemainingMs(time: number): number {
+    if (this.damageMultiplier === 1) return 0;
+    return Math.max(0, this.damageMultiplierUntil - time);
   }
 
   private aimVector(): { x: number; y: number } {
